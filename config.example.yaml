@@ -34,6 +34,17 @@ refresh:
   # the agent tick. Raise it if you watch many repos and want lower CPU.
   full_tick: 30s
 
+# The SYNC readout in the top-right corner.
+indicator:
+  # Animation: full (spinner on full scan) | reduced (color blip only) | off.
+  motion: full
+  # Spinner frame interval while a full scan runs.
+  frame: 80ms
+  # Minimum visible spinner rotations on a full scan, even if it finishes instantly.
+  full_rotations: 2
+  # true: a quick cyan blip on the cheap agent refresh; false: one short rotation.
+  agent_blip: true
+
 sort:
   default: activity
   group_by_repo: true

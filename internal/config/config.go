@@ -25,6 +25,13 @@ type RefreshConfig struct {
 	FullTick time.Duration
 }
 
+type IndicatorConfig struct {
+	Motion        string
+	Frame         time.Duration
+	FullRotations int
+	AgentBlip     bool
+}
+
 type SortConfig struct {
 	Default     string
 	GroupByRepo bool
@@ -83,19 +90,20 @@ type KeysConfig struct {
 }
 
 type Config struct {
-	Roots    []string
-	MaxDepth int
-	Ignore   []string
-	Agents   AgentsConfig
-	Git      GitConfig
-	Refresh  RefreshConfig
-	Sort     SortConfig
-	Inspect  InspectConfig
-	Forge    ForgeConfig
-	Display  DisplayConfig
-	Keys     KeysConfig
-	Theme    string
-	FX       FXConfig
+	Roots     []string
+	MaxDepth  int
+	Ignore    []string
+	Agents    AgentsConfig
+	Git       GitConfig
+	Refresh   RefreshConfig
+	Indicator IndicatorConfig
+	Sort      SortConfig
+	Inspect   InspectConfig
+	Forge     ForgeConfig
+	Display   DisplayConfig
+	Keys      KeysConfig
+	Theme     string
+	FX        FXConfig
 }
 
 func Default() Config {
@@ -107,15 +115,16 @@ func Default() Config {
 			ActiveWindow: 10 * time.Minute,
 			ToolTimeout:  30 * time.Second,
 		},
-		Git:     GitConfig{MaxProcs: 0, Timeout: 10 * time.Second},
-		Refresh: RefreshConfig{Tick: 5 * time.Second, FullTick: 30 * time.Second},
-		Sort:    SortConfig{Default: "activity", GroupByRepo: true},
-		Inspect: InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, AttentionFirst: true},
-		Forge:   ForgeConfig{Enabled: "auto", TTL: 60 * time.Second},
-		Display: DisplayConfig{ProjectFrom: "parent", ProjectContainers: []string{"app", "src", "apps", "packages"}},
-		Keys:    defaultKeys(),
-		Theme:   "evangelion",
-		FX:      FXConfig{Enabled: true, Bars: true, Pulse: true, Depth: true, Gradients: true, BarWidth: 7, BarCap: 20},
+		Git:       GitConfig{MaxProcs: 0, Timeout: 10 * time.Second},
+		Refresh:   RefreshConfig{Tick: 5 * time.Second, FullTick: 30 * time.Second},
+		Indicator: IndicatorConfig{Motion: "full", Frame: 80 * time.Millisecond, FullRotations: 2, AgentBlip: true},
+		Sort:      SortConfig{Default: "activity", GroupByRepo: true},
+		Inspect:   InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, AttentionFirst: true},
+		Forge:     ForgeConfig{Enabled: "auto", TTL: 60 * time.Second},
+		Display:   DisplayConfig{ProjectFrom: "parent", ProjectContainers: []string{"app", "src", "apps", "packages"}},
+		Keys:      defaultKeys(),
+		Theme:     "evangelion",
+		FX:        FXConfig{Enabled: true, Bars: true, Pulse: true, Depth: true, Gradients: true, BarWidth: 7, BarCap: 20},
 	}
 }
 
@@ -171,6 +180,12 @@ type fileConfig struct {
 		Tick     *string `yaml:"tick"`
 		FullTick *string `yaml:"full_tick"`
 	} `yaml:"refresh"`
+	Indicator struct {
+		Motion        *string `yaml:"motion"`
+		Frame         *string `yaml:"frame"`
+		FullRotations *int    `yaml:"full_rotations"`
+		AgentBlip     *bool   `yaml:"agent_blip"`
+	} `yaml:"indicator"`
 	Sort struct {
 		Default     *string `yaml:"default"`
 		GroupByRepo *bool   `yaml:"group_by_repo"`
@@ -284,6 +299,18 @@ func (f fileConfig) applyTo(c *Config) {
 	}
 	if d, ok := parseDur(f.Refresh.FullTick); ok {
 		c.Refresh.FullTick = d
+	}
+	if f.Indicator.Motion != nil && *f.Indicator.Motion != "" {
+		c.Indicator.Motion = *f.Indicator.Motion
+	}
+	if d, ok := parseDur(f.Indicator.Frame); ok {
+		c.Indicator.Frame = d
+	}
+	if f.Indicator.FullRotations != nil && *f.Indicator.FullRotations > 0 {
+		c.Indicator.FullRotations = *f.Indicator.FullRotations
+	}
+	if f.Indicator.AgentBlip != nil {
+		c.Indicator.AgentBlip = *f.Indicator.AgentBlip
 	}
 	if f.Sort.Default != nil {
 		c.Sort.Default = *f.Sort.Default

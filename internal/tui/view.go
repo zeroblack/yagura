@@ -139,15 +139,14 @@ func (m *appModel) liveCount(live, agents int) string {
 }
 
 func (m *appModel) syncBadge() string {
-	glyph, col := "○", theme.RoleTextMuted
-	if m.scanInFlight {
-		glyph, col = string(brailleFrames[m.beat%len(brailleFrames)]), theme.RoleLive
+	v := m.sync.visual(time.Now(), m.lastFullSync)
+	if v.chip {
+		ink := lipgloss.Color(m.sync.th.Color(theme.RoleInk))
+		return lipgloss.NewStyle().Background(v.fg).Foreground(ink).Bold(true).Render(v.glyph)
 	}
-	age := "—"
-	if !m.lastSync.IsZero() {
-		age = relTime(m.lastSync)
-	}
-	return m.fg(col).Render(glyph) + m.fg(theme.RoleTextMuted).Render(" SYNC ") + m.fg(theme.RoleAmber).Render(age)
+	muted := m.fg(theme.RoleTextMuted)
+	glyph := lipgloss.NewStyle().Foreground(v.fg).Render(v.glyph)
+	return glyph + muted.Render(" SYNC ") + muted.Render(cellPad(v.age, 4))
 }
 
 func buildFooter(s styleSet, k config.KeysConfig) string {
