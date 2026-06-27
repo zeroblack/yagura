@@ -41,19 +41,24 @@ changelog:
       - "^chore:"
 
 # The zeroblack/homebrew-tap repository must exist before the first release.
-brews:
+homebrew_casks:
   - name: yagura
+    binaries:
+      - yagura
     repository:
       owner: zeroblack
       name: homebrew-tap
       token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     homepage: https://github.com/zeroblack/yagura
     description: Agent-first multi-repo git worktree cockpit for the terminal
-    license: Apache-2.0
-    install: |
-      bin.install "yagura"
-    test: |
-      system "#{bin}/yagura", "doctor"
+    # The binaries are not notarized; clear the macOS quarantine flag so
+    # Gatekeeper doesn't block them on first run.
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/yagura"]
+          end
 
 release:
   github:
