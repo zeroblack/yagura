@@ -6,7 +6,6 @@ type Role int
 
 const (
 	RoleBackground Role = iota
-	RolePanel
 	RoleLine
 	RoleLive
 	RoleSelection
@@ -28,7 +27,6 @@ const (
 	RoleUnstaged
 	RoleUntracked
 	RolePR
-	RolePRMerged
 	RoleRule
 	RolePin
 
@@ -55,7 +53,6 @@ func Evangelion() Theme {
 		Name: "evangelion",
 		roles: map[Role]string{
 			RoleBackground:  "#07080A",
-			RolePanel:       "#0E1113",
 			RoleLine:        "#232A2C",
 			RoleLive:        "#4DFF8F",
 			RoleSelection:   "#B98CFF",
@@ -77,7 +74,6 @@ func Evangelion() Theme {
 			RoleUnstaged:    "#FFC400",
 			RoleUntracked:   "#79857E",
 			RolePR:          "#20F0FF",
-			RolePRMerged:    "#79857E",
 			RoleRule:        "#7A5C28",
 			RolePin:         "#FFB454",
 		},
