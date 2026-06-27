@@ -146,7 +146,7 @@ func (m *appModel) syncBadge() string {
 	}
 	muted := m.fg(theme.RoleTextMuted)
 	glyph := lipgloss.NewStyle().Foreground(v.fg).Render(v.glyph)
-	return glyph + muted.Render(" SYNC ") + muted.Render(cellPad(v.age, 4))
+	return glyph + muted.Render(" SYNC")
 }
 
 func buildFooter(s styleSet, k config.KeysConfig) string {

@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"fmt"
 	"image/color"
 	"time"
 
@@ -122,29 +121,29 @@ func (s *syncIndicator) frameInterval() time.Duration { return s.cfg.frame }
 type syncVisual struct {
 	glyph string
 	fg    color.Color
-	age   string
 	chip  bool
 }
 
 func (s *syncIndicator) visual(now, lastFull time.Time) syncVisual {
 	switch {
 	case s.spinning:
+		fg := lipgloss.Color(s.th.Color(theme.RoleAmber))
 		if s.kind == scanAgent {
-			return syncVisual{glyph: string(brailleFrames[s.frame]), fg: syncBlipColor, age: s.ageText(now, lastFull)}
+			fg = syncBlipColor
 		}
-		return syncVisual{glyph: string(brailleFrames[s.frame]), fg: lipgloss.Color(s.th.Color(theme.RoleAmber)), age: "··"}
+		return syncVisual{glyph: string(brailleFrames[s.frame]), fg: fg}
 	case now.Before(s.settleUntil):
-		return syncVisual{glyph: "●", fg: syncBloomColor, age: "0s"}
+		return syncVisual{glyph: "●", fg: syncBloomColor}
 	case s.errStreak >= 2:
 		return syncVisual{glyph: " SYNC ✕ ", fg: lipgloss.Color(s.th.Color(theme.RoleError)), chip: true}
 	case s.errStreak == 1:
-		return syncVisual{glyph: "●", fg: lipgloss.Color(s.th.Color(theme.RoleError)), age: "err"}
+		return syncVisual{glyph: "●", fg: lipgloss.Color(s.th.Color(theme.RoleError))}
 	default:
 		fg := s.restColor(now, lastFull)
 		if now.Before(s.blipUntil) {
 			fg = syncBlipColor
 		}
-		return syncVisual{glyph: "●", fg: fg, age: s.ageText(now, lastFull)}
+		return syncVisual{glyph: "●", fg: fg}
 	}
 }
 
@@ -161,18 +160,4 @@ func (s *syncIndicator) restColor(now, lastFull time.Time) color.Color {
 		}
 	}
 	return lipgloss.Color(s.th.Color(role))
-}
-
-func (s *syncIndicator) ageText(now, lastFull time.Time) string {
-	if lastFull.IsZero() {
-		return "—"
-	}
-	switch d := now.Sub(lastFull); {
-	case d < time.Minute:
-		return fmt.Sprintf("%ds", int(d.Seconds()))
-	case d < 100*time.Minute:
-		return fmt.Sprintf("%dm", int(d.Minutes()))
-	default:
-		return "99m+"
-	}
 }
