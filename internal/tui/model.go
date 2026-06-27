@@ -60,6 +60,7 @@ type appModel struct {
 	prsOff        int
 	listOff       int
 	forge         *forge.Manager
+	sync          *syncIndicator
 	scanInFlight  bool
 	lastSync      time.Time
 	lastFullSync  time.Time
@@ -84,13 +85,41 @@ func New(cfg config.Config) *appModel {
 		home:       home,
 		grouped:    cfg.Sort.GroupByRepo,
 		forge:      forge.NewManager(cfg.Forge.Enabled, cfg.Forge.TTL),
+		sync:       newSyncIndicator(syncCfgFrom(cfg), t),
 	}
 }
 
-const uiTickInterval = 250 * time.Millisecond
+const (
+	uiTickInterval = 250 * time.Millisecond
+	uiIdleInterval = time.Second
+)
 
 func (m *appModel) Init() tea.Cmd {
 	return tea.Batch(m.forceRefresh(), tick(uiTickInterval))
+}
+
+// tickInterval keeps the loop fast only when something is actually moving: the
+// sync spinner (sub-second frames), pulsing chips for live agents or attention,
+// otherwise it idles at 1s so a quiet monitor barely touches the CPU.
+func (m *appModel) tickInterval(now time.Time) time.Duration {
+	if m.sync.animating(now) {
+		return m.sync.frameInterval()
+	}
+	if m.hasPulse() {
+		return uiTickInterval
+	}
+	return uiIdleInterval
+}
+
+func (m *appModel) hasPulse() bool {
+	for i := range m.snap.Repos {
+		for _, w := range m.snap.Repos[i].Worktrees {
+			if w.LiveAgents() > 0 {
+				return true
+			}
+		}
+	}
+	return len(m.attentionItems()) > 0
 }
 
 func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -102,6 +131,7 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, m.handleKey(msg.String())
 	case snapshotMsg:
 		m.scanInFlight = false
+		m.sync.finish(msg.err != nil, time.Now())
 		if msg.err != nil {
 			m.err = msg.err
 			return m, nil
@@ -145,17 +175,25 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inspect.statsLoaded = true
 		}
 	case tickMsg:
+		now := time.Now()
 		m.beat++
-		cmds := []tea.Cmd{tick(uiTickInterval)}
+		m.sync.advance(now, m.scanInFlight)
+		var scan tea.Cmd
 		if !m.scanInFlight {
 			switch {
 			case time.Since(m.lastFullSync) >= m.cfg.Refresh.FullTick:
 				m.scanInFlight = true
-				cmds = append(cmds, m.loadSnapshot())
+				m.sync.start(scanFull, now)
+				scan = m.loadSnapshot()
 			case time.Since(m.lastSync) >= m.cfg.Refresh.Tick:
 				m.scanInFlight = true
-				cmds = append(cmds, m.loadAgents())
+				m.sync.start(scanAgent, now)
+				scan = m.loadAgents()
 			}
+		}
+		cmds := []tea.Cmd{tick(m.tickInterval(now))}
+		if scan != nil {
+			cmds = append(cmds, scan)
 		}
 		return m, tea.Batch(cmds...)
 	}
@@ -167,6 +205,7 @@ func (m *appModel) forceRefresh() tea.Cmd {
 		return nil
 	}
 	m.scanInFlight = true
+	m.sync.start(scanFull, time.Now())
 	return m.loadSnapshot()
 }
 
