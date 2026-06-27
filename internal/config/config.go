@@ -21,7 +21,8 @@ type GitConfig struct {
 }
 
 type RefreshConfig struct {
-	Tick time.Duration
+	Tick     time.Duration
+	FullTick time.Duration
 }
 
 type SortConfig struct {
@@ -107,7 +108,7 @@ func Default() Config {
 			ToolTimeout:  30 * time.Second,
 		},
 		Git:     GitConfig{MaxProcs: 0, Timeout: 10 * time.Second},
-		Refresh: RefreshConfig{Tick: 5 * time.Second},
+		Refresh: RefreshConfig{Tick: 5 * time.Second, FullTick: 30 * time.Second},
 		Sort:    SortConfig{Default: "activity", GroupByRepo: true},
 		Inspect: InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, AttentionFirst: true},
 		Forge:   ForgeConfig{Enabled: "auto", TTL: 60 * time.Second},
@@ -167,7 +168,8 @@ type fileConfig struct {
 		Timeout  *string `yaml:"timeout"`
 	} `yaml:"git"`
 	Refresh struct {
-		Tick *string `yaml:"tick"`
+		Tick     *string `yaml:"tick"`
+		FullTick *string `yaml:"full_tick"`
 	} `yaml:"refresh"`
 	Sort struct {
 		Default     *string `yaml:"default"`
@@ -279,6 +281,9 @@ func (f fileConfig) applyTo(c *Config) {
 	}
 	if d, ok := parseDur(f.Refresh.Tick); ok {
 		c.Refresh.Tick = d
+	}
+	if d, ok := parseDur(f.Refresh.FullTick); ok {
+		c.Refresh.FullTick = d
 	}
 	if f.Sort.Default != nil {
 		c.Sort.Default = *f.Sort.Default

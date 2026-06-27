@@ -22,18 +22,30 @@ type Snapshot struct {
 }
 
 // Scanner holds the state that must survive between snapshots: the git
-// semaphore and the agent source transcript cache.
+// semaphore, the agent source transcript cache, the worktree skeleton from the
+// last full scan (so agent-only refreshes skip discovery/git/file walks) and a
+// per-worktree last-commit cache keyed by HEAD.
 type Scanner struct {
 	cfg config.Config
 	git *git.Service
 	src agents.Source
+
+	mu      sync.Mutex
+	cached  []model.Repo
+	commits map[string]commitCache
+}
+
+type commitCache struct {
+	head   string
+	commit time.Time
 }
 
 func NewScanner(cfg config.Config) *Scanner {
 	return &Scanner{
-		cfg: cfg,
-		git: git.NewService(cfg.Git.MaxProcs, cfg.Git.Timeout),
-		src: agents.NewClaudeSource(cfg.Agents.ClaudeRoot, cfg.Agents.ActiveWindow, cfg.Agents.ToolTimeout),
+		cfg:     cfg,
+		git:     git.NewService(cfg.Git.MaxProcs, cfg.Git.Timeout),
+		src:     agents.NewClaudeSource(cfg.Agents.ClaudeRoot, cfg.Agents.ActiveWindow, cfg.Agents.ToolTimeout),
+		commits: map[string]commitCache{},
 	}
 }
 
@@ -64,9 +76,46 @@ func (s *Scanner) Take(ctx context.Context) (Snapshot, error) {
 	}
 	wg.Wait()
 
+	s.mu.Lock()
+	s.cached = cloneRepos(repos)
+	s.mu.Unlock()
+
 	attachAgents(repos, s.src, s.cfg.Agents.ToolTimeout)
 	activity.SortRepos(repos)
 	return Snapshot{Repos: repos}, nil
+}
+
+// RefreshAgents re-attaches live agent sessions to the worktree skeleton from
+// the last full Take, skipping discovery, git execs and the file-mod walk. It
+// keeps agent liveness responsive on the fast tick while the expensive repo
+// scan only runs on the slow full tick. It falls back to a full Take before the
+// first snapshot exists.
+func (s *Scanner) RefreshAgents(ctx context.Context) (Snapshot, error) {
+	s.mu.Lock()
+	cached := s.cached
+	s.mu.Unlock()
+	if len(cached) == 0 {
+		return s.Take(ctx)
+	}
+	repos := cloneRepos(cached)
+	attachAgents(repos, s.src, s.cfg.Agents.ToolTimeout)
+	activity.SortRepos(repos)
+	return Snapshot{Repos: repos}, nil
+}
+
+// cloneRepos copies the repo/worktree structure so agent attachment on a refresh
+// never mutates the cached skeleton or a snapshot the UI still holds.
+func cloneRepos(src []model.Repo) []model.Repo {
+	out := make([]model.Repo, len(src))
+	for i, r := range src {
+		out[i] = r
+		out[i].Worktrees = make([]model.Worktree, len(r.Worktrees))
+		copy(out[i].Worktrees, r.Worktrees)
+		for j := range out[i].Worktrees {
+			out[i].Worktrees[j].Agents = nil
+		}
+	}
+	return out
 }
 
 func (s *Scanner) buildRepo(ctx context.Context, path string, roots []string, ignore map[string]bool) model.Repo {
@@ -79,10 +128,30 @@ func (s *Scanner) buildRepo(ctx context.Context, path string, roots []string, ig
 	r.Worktrees = worktree.ParsePorcelain(out)
 	for j := range r.Worktrees {
 		w := &r.Worktrees[j]
-		w.LastCommit = worktree.LastCommit(ctx, s.git, w.Path)
+		w.LastCommit = s.lastCommit(ctx, w.Path, w.Head)
 		w.LastFileMod = worktree.LatestFileMod(w.Path, ignore, s.cfg.MaxDepth)
 	}
 	return r
+}
+
+// lastCommit reuses the cached commit time when HEAD hasn't moved since the
+// previous scan, avoiding a git log exec per worktree on every full scan.
+func (s *Scanner) lastCommit(ctx context.Context, wtPath, head string) time.Time {
+	if head != "" {
+		s.mu.Lock()
+		c, ok := s.commits[wtPath]
+		s.mu.Unlock()
+		if ok && c.head == head {
+			return c.commit
+		}
+	}
+	t := worktree.LastCommit(ctx, s.git, wtPath)
+	if head != "" {
+		s.mu.Lock()
+		s.commits[wtPath] = commitCache{head: head, commit: t}
+		s.mu.Unlock()
+	}
+	return t
 }
 
 type worktreeRef struct {

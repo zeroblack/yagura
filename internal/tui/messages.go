@@ -10,6 +10,7 @@ import (
 
 type snapshotMsg struct {
 	snap scan.Snapshot
+	full bool
 	err  error
 }
 
@@ -29,7 +30,15 @@ func (m *appModel) loadSnapshot() tea.Cmd {
 	scanner := m.scanner
 	return func() tea.Msg {
 		snap, err := scanner.Take(context.Background())
-		return snapshotMsg{snap: snap, err: err}
+		return snapshotMsg{snap: snap, full: true, err: err}
+	}
+}
+
+func (m *appModel) loadAgents() tea.Cmd {
+	scanner := m.scanner
+	return func() tea.Msg {
+		snap, err := scanner.RefreshAgents(context.Background())
+		return snapshotMsg{snap: snap, full: false, err: err}
 	}
 }
 
