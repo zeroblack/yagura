@@ -4,10 +4,10 @@ go 1.25.8
 
 require (
 	charm.land/bubbletea/v2 v2.0.7
-	charm.land/lipgloss/v2 v2.0.3
+	charm.land/lipgloss/v2 v2.0.4
 	github.com/charmbracelet/colorprofile v0.4.3
 	github.com/stretchr/testify v1.11.1
-	github.com/urfave/cli/v3 v3.9.0
+	github.com/urfave/cli/v3 v3.10.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
