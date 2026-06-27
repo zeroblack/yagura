@@ -1,0 +1,7 @@
+* text=auto eol=lf
+
+*.png binary
+*.gif binary
+
+go.sum linguist-generated=true
+assets/** linguist-documentation=true

@@ -1,0 +1,7 @@
+/bin/
+/dist/
+/yagura
+*.test
+*.out
+coverage.*
+.DS_Store

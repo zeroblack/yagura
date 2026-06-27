@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-label="yagura">
+  <rect x="0" y="0" width="256" height="256" rx="44" fill="#07080A"/>
+  <polygon points="128,34 209,81 209,175 128,222 47,175 47,81" fill="none" stroke="#FFA033" stroke-width="12" stroke-linejoin="miter"/>
+  <g fill="none" stroke="#FFA033" stroke-width="22" stroke-linejoin="miter" stroke-linecap="butt">
+    <path d="M95 93 L128 141 L161 93"/>
+    <path d="M128 141 L128 185"/>
+  </g>
+</svg>

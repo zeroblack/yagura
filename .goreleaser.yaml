@@ -1,0 +1,61 @@
+version: 2
+
+project_name: yagura
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: yagura
+    main: ./cmd/yagura
+    binary: yagura
+    env:
+      - CGO_ENABLED=0
+    goos: [linux, darwin]
+    goarch: [amd64, arm64]
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X github.com/zeroblack/yagura/internal/version.Version={{ .Version }}
+
+archives:
+  - id: yagura
+    formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - README.md
+      - LICENSE
+      - NOTICE
+      - config.example.yaml
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+# The zeroblack/homebrew-tap repository must exist before the first release.
+brews:
+  - name: yagura
+    repository:
+      owner: zeroblack
+      name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/zeroblack/yagura
+    description: Agent-first multi-repo git worktree cockpit for the terminal
+    license: Apache-2.0
+    install: |
+      bin.install "yagura"
+    test: |
+      system "#{bin}/yagura", "doctor"
+
+release:
+  github:
+    owner: zeroblack
+    name: yagura

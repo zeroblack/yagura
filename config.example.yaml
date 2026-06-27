@@ -1,0 +1,84 @@
+# yagura configuration — copy to ~/.config/yagura/config.yaml
+# Every value is optional; the defaults shown here apply when a key is omitted.
+
+# Directories scanned for git repositories. Without roots, the current
+# working directory is used.
+roots:
+  - ~/code
+
+# How deep the repository discovery walks under each root.
+max_depth: 4
+
+# Directory names skipped during discovery and file-activity scans.
+ignore: [node_modules, vendor, dist, .next, target, .venv]
+
+git:
+  # Maximum concurrent git subprocesses. 0 = auto (2x CPU cores, capped 4-32).
+  max_procs: 0
+  # Per-command timeout; protects the UI from hung repos (network mounts, locks).
+  timeout: 10s
+
+agents:
+  # Where Claude Code session transcripts live.
+  claude_root: ~/.claude/projects
+  # Transcripts older than this are considered idle and ignored.
+  active_window: 10m
+  # Transcripts written within this window count as actively working.
+  tool_timeout: 30s
+
+refresh:
+  # Interval between snapshot scans.
+  tick: 5s
+
+sort:
+  default: activity
+  group_by_repo: true
+
+inspect:
+  # Order of the CHANGES pane: mtime | path | status.
+  changes_sort: mtime
+  # Maximum commits in the GRAPH pane.
+  graph_max: 200
+  # Maximum files listed in the CHANGES pane.
+  file_limit: 40
+  # Show an attention banner for branches that need action.
+  attention_first: true
+
+forge:
+  # PR badges via the GitHub CLI: auto | on | off.
+  enabled: auto
+  # How long PR data is cached.
+  ttl: 60s
+
+display:
+  # Project name in the focus card: parent (workspace dir) | repo (folder name).
+  project_from: parent
+  # Folder names treated as containers, so the project name is taken from the parent.
+  project_containers: [app, src, apps, packages]
+
+# Each action accepts a list of keys; unset actions keep these defaults.
+keys:
+  inspect: enter
+  quit: [q, ctrl+c]
+  close: [esc]
+  focus_next: [tab, "]"]
+  focus_prev: [shift+tab, "["]
+  pane_list: ["1"]
+  pane_changes: ["2"]
+  pane_graph: ["3"]
+  pane_prs: ["4"]
+  up: [up, k]
+  down: [down, j]
+  page_up: [pgup]
+  page_down: [pgdown]
+  home: [g, home]
+  end: [G, end]
+  pin: [space]
+  group: [o]
+  refresh: [r]
+  diff: [d]
+  commits: [c]
+  status: [s]
+  agent_log: [l]
+
+theme: evangelion
