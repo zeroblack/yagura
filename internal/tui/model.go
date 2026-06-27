@@ -62,6 +62,7 @@ type appModel struct {
 	forge         *forge.Manager
 	scanInFlight  bool
 	lastSync      time.Time
+	lastFullSync  time.Time
 	beat          int
 	err           error
 }
@@ -106,6 +107,9 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.err = nil
+		if msg.full {
+			m.lastFullSync = time.Now()
+		}
 		return m, m.applySnapshot(msg.snap)
 	case detailMsg:
 		if m.detail == msg.mode && m.selectedWorktreePath() == msg.wtPath {
@@ -143,9 +147,15 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tickMsg:
 		m.beat++
 		cmds := []tea.Cmd{tick(uiTickInterval)}
-		if !m.scanInFlight && time.Since(m.lastSync) >= m.cfg.Refresh.Tick {
-			m.scanInFlight = true
-			cmds = append(cmds, m.loadSnapshot())
+		if !m.scanInFlight {
+			switch {
+			case time.Since(m.lastFullSync) >= m.cfg.Refresh.FullTick:
+				m.scanInFlight = true
+				cmds = append(cmds, m.loadSnapshot())
+			case time.Since(m.lastSync) >= m.cfg.Refresh.Tick:
+				m.scanInFlight = true
+				cmds = append(cmds, m.loadAgents())
+			}
 		}
 		return m, tea.Batch(cmds...)
 	}

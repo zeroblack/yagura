@@ -27,8 +27,12 @@ agents:
   tool_timeout: 30s
 
 refresh:
-  # Interval between snapshot scans.
+  # Fast tick: re-detect live agents (transcript freshness) and re-sort. Cheap.
   tick: 5s
+  # Slow tick: full rescan of repos, worktrees, commits and file activity. This
+  # is the heavy work (git execs + filesystem walks), so it runs less often than
+  # the agent tick. Raise it if you watch many repos and want lower CPU.
+  full_tick: 30s
 
 sort:
   default: activity
