@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <rect width="1280" height="640" fill="#07080A"/>
+  <rect x="0" y="635" width="1280" height="5" fill="#FFA033" opacity="0.55"/>
+  <g transform="translate(454.4,24) scale(1.45)">
+    <polygon points="128,34 209,81 209,175 128,222 47,175 47,81" fill="none" stroke="#FFA033" stroke-width="12" stroke-linejoin="miter"/>
+    <g fill="none" stroke="#FFA033" stroke-width="22" stroke-linejoin="miter" stroke-linecap="butt">
+      <path d="M95 93 L128 141 L161 93"/>
+      <path d="M128 141 L128 185"/>
+    </g>
+  </g>
+  <text x="640" y="455" text-anchor="middle" font-family="MesloLGS Nerd Font Mono, monospace" font-size="108" font-weight="700" fill="#FFA033" letter-spacing="4">yagura</text>
+  <text x="640" y="512" text-anchor="middle" font-family="MesloLGS Nerd Font Mono, monospace" font-size="26" fill="#79857E">a read-only watchtower for AI agents across your git worktrees</text>
+</svg>
