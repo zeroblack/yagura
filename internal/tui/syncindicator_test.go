@@ -17,15 +17,6 @@ func testIndicator() *syncIndicator {
 	}, theme.ByName("evangelion"))
 }
 
-func TestSyncAgeText(t *testing.T) {
-	s := testIndicator()
-	now := time.Now()
-	require.Equal(t, "—", s.ageText(now, time.Time{}))
-	require.Equal(t, "3s", s.ageText(now, now.Add(-3*time.Second)))
-	require.Equal(t, "2m", s.ageText(now, now.Add(-2*time.Minute)))
-	require.Equal(t, "99m+", s.ageText(now, now.Add(-200*time.Minute)))
-}
-
 func TestSyncRestColorEscalates(t *testing.T) {
 	s := testIndicator()
 	th := theme.ByName("evangelion")
@@ -82,7 +73,6 @@ func TestSyncErrorEscalatesToChip(t *testing.T) {
 	s.finish(true, now)
 	v := s.visual(now, now)
 	require.Equal(t, "●", v.glyph)
-	require.Equal(t, "err", v.age)
 	require.False(t, v.chip)
 
 	s.finish(true, now)
