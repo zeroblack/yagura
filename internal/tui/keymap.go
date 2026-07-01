@@ -28,6 +28,7 @@ const (
 	actCommits
 	actStatus
 	actAgentLog
+	actHelp
 )
 
 func buildKeymap(k config.KeysConfig) map[string]keyAction {
@@ -57,6 +58,7 @@ func buildKeymap(k config.KeysConfig) map[string]keyAction {
 		{actCommits, k.Commits},
 		{actStatus, k.Status},
 		{actAgentLog, k.AgentLog},
+		{actHelp, k.Help},
 	}
 	m := make(map[string]keyAction)
 	for _, b := range bindings {

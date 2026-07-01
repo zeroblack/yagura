@@ -37,6 +37,8 @@ type appModel struct {
 	styles        styleSet
 	fx            fxSet
 	keymap        map[string]keyAction
+	footer        []footerEntry
+	footerPin     footerEntry
 	footerLine    string
 	scanner       *scan.Scanner
 	gitSvc        *git.Service
@@ -50,6 +52,7 @@ type appModel struct {
 	width         int
 	height        int
 	detail        detailMode
+	showHelp      bool
 	detailContent string
 	detailLoading bool
 	inspect       inspectState
@@ -75,17 +78,18 @@ func New(cfg config.Config) *appModel {
 	scanner := scan.NewScanner(cfg)
 	home, _ := os.UserHomeDir()
 	return &appModel{
-		cfg:        cfg,
-		styles:     styles,
-		fx:         fx,
-		keymap:     buildKeymap(cfg.Keys),
-		footerLine: buildFooter(styles, cfg.Keys),
-		scanner:    scanner,
-		gitSvc:     scanner.Git(),
-		home:       home,
-		grouped:    cfg.Sort.GroupByRepo,
-		forge:      forge.NewManager(cfg.Forge.Enabled, cfg.Forge.TTL),
-		sync:       newSyncIndicator(syncCfgFrom(cfg), t),
+		cfg:       cfg,
+		styles:    styles,
+		fx:        fx,
+		keymap:    buildKeymap(cfg.Keys),
+		footer:    footerEntries(styles, cfg.Keys),
+		footerPin: makeFooterEntry(styles, primaryKey(cfg.Keys.Help), "help"),
+		scanner:   scanner,
+		gitSvc:    scanner.Git(),
+		home:      home,
+		grouped:   cfg.Sort.GroupByRepo,
+		forge:     forge.NewManager(cfg.Forge.Enabled, cfg.Forge.TTL),
+		sync:      newSyncIndicator(syncCfgFrom(cfg), t),
 	}
 }
 
@@ -127,6 +131,7 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.fx.resize(m.width)
+		m.footerLine = fitFooter(m.footer, m.footerPin, m.styles, m.width)
 	case tea.KeyPressMsg:
 		return m, m.handleKey(msg.String())
 	case snapshotMsg:

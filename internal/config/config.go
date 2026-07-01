@@ -87,6 +87,7 @@ type KeysConfig struct {
 	Commits    []string
 	Status     []string
 	AgentLog   []string
+	Help       []string
 }
 
 type Config struct {
@@ -160,6 +161,7 @@ func defaultKeys() KeysConfig {
 		Commits:    []string{"c"},
 		Status:     []string{"s"},
 		AgentLog:   []string{"l"},
+		Help:       []string{"?"},
 	}
 }
 
@@ -227,6 +229,7 @@ type fileConfig struct {
 		Commits    []string `yaml:"commits"`
 		Status     []string `yaml:"status"`
 		AgentLog   []string `yaml:"agent_log"`
+		Help       []string `yaml:"help"`
 	} `yaml:"keys"`
 	Theme *string `yaml:"theme"`
 	FX    struct {
@@ -402,6 +405,7 @@ func (f fileConfig) applyKeys(k *KeysConfig) {
 		{&k.Commits, f.Keys.Commits},
 		{&k.Status, f.Keys.Status},
 		{&k.AgentLog, f.Keys.AgentLog},
+		{&k.Help, f.Keys.Help},
 	}
 	for _, o := range overrides {
 		if len(o.src) > 0 {

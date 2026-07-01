@@ -9,6 +9,16 @@ func (m *appModel) handleKey(s string) tea.Cmd {
 	if act == actQuit {
 		return tea.Quit
 	}
+	if act == actHelp {
+		m.toggleHelp()
+		return nil
+	}
+	if m.showHelp {
+		if act == actClose {
+			m.showHelp = false
+		}
+		return nil
+	}
 	if m.detail != detailNone {
 		if act == actClose {
 			m.closeDetail()

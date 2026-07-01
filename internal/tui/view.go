@@ -86,7 +86,9 @@ func (m *appModel) render() string {
 	if m.err != nil {
 		b.WriteString(" " + m.chip(theme.RoleError, " ERROR ") + " " + m.fg(theme.RoleError).Render(m.err.Error()) + "\n")
 	}
-	if m.detail != detailNone {
+	if m.showHelp {
+		b.WriteString(m.helpPanel())
+	} else if m.detail != detailNone {
 		for i, r := range m.rows {
 			b.WriteString(m.renderRow(i, r))
 			b.WriteString("\n")
@@ -149,8 +151,21 @@ func (m *appModel) syncBadge() string {
 	return glyph + muted.Render(" SYNC")
 }
 
-func buildFooter(s styleSet, k config.KeysConfig) string {
-	entries := []struct {
+type footerEntry struct {
+	rendered string
+	width    int
+}
+
+func makeFooterEntry(s styleSet, key, label string) footerEntry {
+	if key == "" {
+		return footerEntry{}
+	}
+	r := s.fg[theme.RoleAmber].Render(key) + s.fg[theme.RoleTextMuted].Render(" "+label)
+	return footerEntry{rendered: r, width: lipgloss.Width(r)}
+}
+
+func footerEntries(s styleSet, k config.KeysConfig) []footerEntry {
+	specs := []struct {
 		key   string
 		label string
 	}{
@@ -166,14 +181,75 @@ func buildFooter(s styleSet, k config.KeysConfig) string {
 		{primaryKey(k.Refresh), "sync"},
 		{primaryKey(k.Quit), "quit"},
 	}
-	parts := make([]string, 0, len(entries))
-	for _, e := range entries {
-		if e.key == "" {
-			continue
+	entries := make([]footerEntry, 0, len(specs))
+	for _, e := range specs {
+		if entry := makeFooterEntry(s, e.key, e.label); entry.width > 0 {
+			entries = append(entries, entry)
 		}
-		parts = append(parts, s.fg[theme.RoleAmber].Render(e.key)+s.fg[theme.RoleTextMuted].Render(" "+e.label))
 	}
-	return " " + strings.Join(parts, s.fg[theme.RoleLine].Render(" · "))
+	return entries
+}
+
+// fitFooter lays the hint entries on a single line, trimming trailing ones with
+// a "…" when they overflow the width. The pinned entry (help) is never dropped,
+// so the shortcut that reveals every binding stays visible at any width.
+func fitFooter(entries []footerEntry, pin footerEntry, s styleSet, width int) string {
+	if width <= 1 {
+		return ""
+	}
+	sep := s.fg[theme.RoleLine].Render(" · ")
+	ellipsis := s.fg[theme.RoleTextMuted].Render("…")
+	sepW := lipgloss.Width(sep)
+	ellW := lipgloss.Width(ellipsis)
+
+	budget := width - 1 // leading space
+	avail := budget
+	if pin.width > 0 {
+		avail -= pin.width + sepW
+	}
+	if avail < 0 {
+		if pin.width > 0 && pin.width <= budget {
+			return " " + pin.rendered
+		}
+		return ""
+	}
+
+	used, n := 0, 0
+	for i, e := range entries {
+		w := e.width
+		if i > 0 {
+			w += sepW
+		}
+		if used+w > avail {
+			break
+		}
+		used += w
+		n++
+	}
+	truncated := n < len(entries)
+	for truncated && n > 0 && used+sepW+ellW > avail {
+		last := entries[n-1].width
+		if n > 1 {
+			last += sepW
+		}
+		used -= last
+		n--
+	}
+
+	parts := make([]string, 0, n+2)
+	for i := 0; i < n; i++ {
+		parts = append(parts, entries[i].rendered)
+	}
+	if truncated {
+		parts = append(parts, ellipsis)
+	}
+	if pin.width > 0 {
+		parts = append(parts, pin.rendered)
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return " " + strings.Join(parts, sep)
 }
 
 func (m *appModel) rail(i int) string {

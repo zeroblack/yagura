@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/zeroblack/yagura/internal/config"
 	"github.com/zeroblack/yagura/internal/scan"
@@ -86,9 +87,25 @@ func TestKeymapHonorsConfigOverrides(t *testing.T) {
 
 func TestFooterReflectsConfiguredKeys(t *testing.T) {
 	m := New(config.Default())
+	m.Update(tea.WindowSizeMsg{Width: 200, Height: 40})
 	out := stripANSI(m.footerLine)
-	for _, want := range []string{"d diff", "c commits", "s status", "l log", "r sync", "q quit", "o group"} {
+	for _, want := range []string{"d diff", "c commits", "s status", "l log", "r sync", "q quit", "o group", "? help"} {
 		require.Contains(t, out, want)
+	}
+	require.NotContains(t, out, "…", "a wide terminal shows every hint without truncation")
+}
+
+func TestFooterTruncatesButAlwaysKeepsHelp(t *testing.T) {
+	m := New(config.Default())
+	for _, width := range []int{20, 30, 40, 60, 80} {
+		m.Update(tea.WindowSizeMsg{Width: width, Height: 40})
+		out := stripANSI(m.footerLine)
+
+		require.LessOrEqualf(t, lipgloss.Width(m.footerLine), width, "footer must never exceed width %d", width)
+		require.Containsf(t, out, "? help", "the help shortcut must survive at width %d", width)
+		if width < 80 {
+			require.Containsf(t, out, "…", "a narrow width signals trimmed hints at %d", width)
+		}
 	}
 }
 
