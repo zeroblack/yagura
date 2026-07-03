@@ -85,6 +85,8 @@ func TestInspectForgeDefaults(t *testing.T) {
 	require.Equal(t, 40, c.Inspect.FileLimit)
 	require.Equal(t, 200, c.Inspect.GraphMax)
 	require.True(t, c.Inspect.AttentionFirst)
+	require.Equal(t, 400, c.Inspect.DiffLineLimit)
+	require.Equal(t, []string{"5"}, c.Keys.PaneDiff)
 	require.Equal(t, "auto", c.Forge.Enabled)
 	require.Equal(t, 60*time.Second, c.Forge.TTL)
 	require.Equal(t, "enter", c.Keys.Inspect)
@@ -119,4 +121,16 @@ func TestLoadParsesDurations(t *testing.T) {
 	require.Equal(t, 5*time.Minute, c.Agents.ActiveWindow)
 	require.Equal(t, 45*time.Second, c.Agents.ToolTimeout)
 	require.False(t, c.Sort.GroupByRepo)
+}
+
+func TestLoadInspectDiffLineLimitAndPaneDiffKey(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	body := "inspect:\n  diff_line_limit: 100\nkeys:\n  pane_diff: [\"6\"]\n"
+	require.NoError(t, os.WriteFile(path, []byte(body), 0o644))
+
+	c, err := Load(path)
+	require.NoError(t, err)
+	require.Equal(t, 100, c.Inspect.DiffLineLimit)
+	require.Equal(t, []string{"6"}, c.Keys.PaneDiff)
 }
