@@ -41,6 +41,7 @@ type InspectConfig struct {
 	ChangesSort    string
 	GraphMax       int
 	FileLimit      int
+	DiffLineLimit  int
 	AttentionFirst bool
 }
 
@@ -72,6 +73,7 @@ type KeysConfig struct {
 	FocusPrev  []string
 	PaneList   []string
 	PaneChange []string
+	PaneDiff   []string
 	PaneGraph  []string
 	PanePR     []string
 	Up         []string
@@ -120,7 +122,7 @@ func Default() Config {
 		Refresh:   RefreshConfig{Tick: 5 * time.Second, FullTick: 30 * time.Second},
 		Indicator: IndicatorConfig{Motion: "full", Frame: 80 * time.Millisecond, FullRotations: 2, AgentBlip: true},
 		Sort:      SortConfig{Default: "activity", GroupByRepo: true},
-		Inspect:   InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, AttentionFirst: true},
+		Inspect:   InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, DiffLineLimit: 400, AttentionFirst: true},
 		Forge:     ForgeConfig{Enabled: "auto", TTL: 60 * time.Second},
 		Display:   DisplayConfig{ProjectFrom: "parent", ProjectContainers: []string{"app", "src", "apps", "packages"}},
 		Keys:      defaultKeys(),
@@ -145,9 +147,10 @@ func defaultKeys() KeysConfig {
 		FocusNext:  []string{"tab", "]"},
 		FocusPrev:  []string{"shift+tab", "["},
 		PaneList:   []string{"1"},
-		PaneChange: []string{"2"},
-		PaneGraph:  []string{"3"},
-		PanePR:     []string{"4"},
+		PanePR:     []string{"2"},
+		PaneChange: []string{"3"},
+		PaneDiff:   []string{"4"},
+		PaneGraph:  []string{"5"},
 		Up:         []string{"up", "k"},
 		Down:       []string{"down", "j"},
 		PageUp:     []string{"pgup"},
@@ -196,6 +199,7 @@ type fileConfig struct {
 		ChangesSort    *string `yaml:"changes_sort"`
 		GraphMax       *int    `yaml:"graph_max"`
 		FileLimit      *int    `yaml:"file_limit"`
+		DiffLineLimit  *int    `yaml:"diff_line_limit"`
 		AttentionFirst *bool   `yaml:"attention_first"`
 	} `yaml:"inspect"`
 	Forge struct {
@@ -214,6 +218,7 @@ type fileConfig struct {
 		FocusPrev  []string `yaml:"focus_prev"`
 		PaneList   []string `yaml:"pane_list"`
 		PaneChange []string `yaml:"pane_changes"`
+		PaneDiff   []string `yaml:"pane_diff"`
 		PaneGraph  []string `yaml:"pane_graph"`
 		PanePR     []string `yaml:"pane_prs"`
 		Up         []string `yaml:"up"`
@@ -330,6 +335,9 @@ func (f fileConfig) applyTo(c *Config) {
 	if f.Inspect.FileLimit != nil && *f.Inspect.FileLimit > 0 {
 		c.Inspect.FileLimit = *f.Inspect.FileLimit
 	}
+	if f.Inspect.DiffLineLimit != nil && *f.Inspect.DiffLineLimit > 0 {
+		c.Inspect.DiffLineLimit = *f.Inspect.DiffLineLimit
+	}
 	if f.Inspect.AttentionFirst != nil {
 		c.Inspect.AttentionFirst = *f.Inspect.AttentionFirst
 	}
@@ -390,6 +398,7 @@ func (f fileConfig) applyKeys(k *KeysConfig) {
 		{&k.FocusPrev, f.Keys.FocusPrev},
 		{&k.PaneList, f.Keys.PaneList},
 		{&k.PaneChange, f.Keys.PaneChange},
+		{&k.PaneDiff, f.Keys.PaneDiff},
 		{&k.PaneGraph, f.Keys.PaneGraph},
 		{&k.PanePR, f.Keys.PanePR},
 		{&k.Up, f.Keys.Up},

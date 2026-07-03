@@ -288,6 +288,56 @@ func (m *appModel) graphLines() []string {
 	return lines
 }
 
+func (m *appModel) diffContent() []string {
+	if !m.inspect.diffLoaded {
+		return []string{m.fg(theme.RoleTextMuted).Render("   loading…")}
+	}
+	if m.inspect.diffErr != nil {
+		return []string{m.fg(theme.RoleError).Render("   " + m.inspect.diffErr.Error())}
+	}
+	if m.inspect.diffTarget == "" {
+		return []string{m.fg(theme.RoleTextMuted).Render("   working tree clean")}
+	}
+	return m.diffLines()
+}
+
+func (m *appModel) diffLines() []string {
+	all := strings.Split(m.inspect.diffContent, "\n")
+	limit := m.cfg.Inspect.DiffLineLimit
+	shown := all
+	truncated := false
+	if limit > 0 && len(all) > limit {
+		shown = all[:limit]
+		truncated = true
+	}
+	lines := make([]string, 0, len(shown)+2)
+	lines = append(lines, m.fg(theme.RoleTextMuted).Render("   "+m.inspect.diffTarget))
+	for _, l := range shown {
+		lines = append(lines, "  "+m.colorUnifiedDiffLine(l))
+	}
+	if truncated {
+		lines = append(lines, m.fg(theme.RoleTextMuted).Render(fmt.Sprintf("   … +%d more", len(all)-limit)))
+	}
+	return lines
+}
+
+func (m *appModel) colorUnifiedDiffLine(line string) string {
+	switch {
+	case strings.HasPrefix(line, "+++"), strings.HasPrefix(line, "---"):
+		return m.fg(theme.RoleTextMuted).Render(line)
+	case strings.HasPrefix(line, "+"):
+		return m.fg(theme.RoleAdd).Render(line)
+	case strings.HasPrefix(line, "-"):
+		return m.fg(theme.RoleDel).Render(line)
+	case strings.HasPrefix(line, "@@"):
+		return m.fg(theme.RoleAccent).Render(line)
+	case strings.HasPrefix(line, "diff --git"), strings.HasPrefix(line, "index "):
+		return m.fg(theme.RoleTextMuted).Render(line)
+	default:
+		return m.fg(theme.RoleTextPrimary).Render(line)
+	}
+}
+
 func (m *appModel) graphLine(gl model.GraphLine, tips map[string]bool) string {
 	graph := m.colorGraphPrefix(gl.Graph)
 	if !gl.HasCommit {
@@ -493,9 +543,9 @@ func (m *appModel) renderInspectorBody() string {
 		avail = 6
 	}
 	showPRs := m.prsVisible()
-	panes := 3
+	panes := 4
 	if showPRs {
-		panes = 4
+		panes = 5
 	}
 	bodyAvail := avail - (2*panes - 1) // one title per pane + a gap between groups
 	if bodyAvail < 3 {
@@ -519,12 +569,14 @@ func (m *appModel) renderInspectorBody() string {
 		m.prsOff = clampOffset(m.prsOff, len(prs), prsH)
 	}
 
-	rem := max(2, bodyAvail-listH-prsH)
-	chH, grH := splitPanes(rem, m.focus)
+	rem := max(3, bodyAvail-listH-prsH)
+	chH, dfH, grH := splitPanes(rem, m.focus)
 
 	changes := m.changesContent()
+	diff := m.diffContent()
 	graph := m.graphContent()
 	m.changesOff = clampOffset(m.changesOff, len(changes), chH)
+	m.diffOff = clampOffset(m.diffOff, len(diff), dfH)
 	m.graphOff = clampOffset(m.graphOff, len(graph), grH)
 
 	b.WriteString(m.paneTitle("WORKTREES", m.worktreeCount(), m.focus == focusList, m.listOff, listH, listLen) + "\n")
@@ -538,22 +590,34 @@ func (m *appModel) renderInspectorBody() string {
 	b.WriteString(m.paneTitle("CHANGES", len(m.inspect.status.Files), m.focus == focusChanges, m.changesOff, chH, len(changes)) + "\n")
 	b.WriteString(windowLines(changes, m.changesOff, chH))
 	b.WriteString("\n")
+	b.WriteString(m.paneTitle("DIFF", 0, m.focus == focusDiff, m.diffOff, dfH, len(diff)) + "\n")
+	b.WriteString(windowLines(diff, m.diffOff, dfH))
+	b.WriteString("\n")
 	b.WriteString(m.paneTitle("GRAPH", 0, m.focus == focusGraph, m.graphOff, grH, len(graph)) + "\n")
 	b.WriteString(windowLines(graph, m.graphOff, grH))
 	return strings.TrimRight(b.String(), "\n")
 }
 
-func splitPanes(rem int, focus paneFocus) (int, int) {
+func splitPanes(rem int, focus paneFocus) (chH, diffH, grH int) {
 	switch focus {
 	case focusChanges:
-		ch := max(1, (rem*3+2)/5)
-		return ch, max(1, rem-ch)
+		ch := min(max(1, (rem*3+2)/5), rem-2)
+		rest := rem - ch
+		half := rest / 2
+		return ch, max(1, half), max(1, rest-half)
+	case focusDiff:
+		df := min(max(1, (rem*3+2)/5), rem-2)
+		rest := rem - df
+		half := rest / 2
+		return max(1, half), df, max(1, rest-half)
 	case focusGraph:
-		gr := max(1, (rem*3+2)/5)
-		return max(1, rem-gr), gr
+		gr := min(max(1, (rem*3+2)/5), rem-2)
+		rest := rem - gr
+		half := rest / 2
+		return max(1, half), max(1, rest-half), gr
 	default:
-		ch := rem / 2
-		return max(1, ch), max(1, rem-ch)
+		third := max(1, rem/3)
+		return third, third, max(1, rem-2*third)
 	}
 }
 

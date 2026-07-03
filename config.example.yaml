@@ -56,6 +56,8 @@ inspect:
   graph_max: 200
   # Maximum files listed in the CHANGES pane.
   file_limit: 40
+  # Maximum lines rendered in the DIFF pane before truncating.
+  diff_line_limit: 400
   # Show an attention banner for branches that need action.
   attention_first: true
 
@@ -79,9 +81,10 @@ keys:
   focus_next: [tab, "]"]
   focus_prev: [shift+tab, "["]
   pane_list: ["1"]
-  pane_changes: ["2"]
-  pane_graph: ["3"]
-  pane_prs: ["4"]
+  pane_prs: ["2"]
+  pane_changes: ["3"]
+  pane_diff: ["4"]
+  pane_graph: ["5"]
   up: [up, k]
   down: [down, j]
   page_up: [pgup]

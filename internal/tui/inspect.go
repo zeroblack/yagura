@@ -19,6 +19,7 @@ type paneFocus int
 const (
 	focusList paneFocus = iota
 	focusChanges
+	focusDiff
 	focusGraph
 	focusPRs
 )
@@ -27,6 +28,8 @@ func (p paneFocus) String() string {
 	switch p {
 	case focusChanges:
 		return "CHANGES"
+	case focusDiff:
+		return "DIFF"
 	case focusGraph:
 		return "GRAPH"
 	case focusPRs:
@@ -50,6 +53,10 @@ type inspectState struct {
 	prByBranch   map[string]model.PRInfo
 	stats        model.RepoStats
 	statsLoaded  bool
+	diffTarget   string
+	diffContent  string
+	diffLoaded   bool
+	diffErr      error
 }
 
 type inspectStatsMsg struct {
@@ -169,7 +176,7 @@ func (m *appModel) refreshInspect() tea.Cmd {
 		return tea.Batch(m.loadInspectData()...)
 	}
 	m.inspect = inspectState{repo: m.selectedRepo(), wt: wt}
-	m.changesOff, m.graphOff = 0, 0
+	m.changesOff, m.diffOff, m.graphOff = 0, 0, 0
 	m.inspectGen++
 	gen := m.inspectGen
 	return tea.Tick(inspectSettleDelay, func(time.Time) tea.Msg { return inspectSettleMsg{gen: gen} })

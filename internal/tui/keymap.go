@@ -13,6 +13,7 @@ const (
 	actFocusPrev
 	actPaneList
 	actPaneChanges
+	actPaneDiff
 	actPaneGraph
 	actPanePR
 	actUp
@@ -43,6 +44,7 @@ func buildKeymap(k config.KeysConfig) map[string]keyAction {
 		{actFocusPrev, k.FocusPrev},
 		{actPaneList, k.PaneList},
 		{actPaneChanges, k.PaneChange},
+		{actPaneDiff, k.PaneDiff},
 		{actPaneGraph, k.PaneGraph},
 		{actPanePR, k.PanePR},
 		{actUp, k.Up},

@@ -7,7 +7,7 @@ func (m *appModel) visibleFocus() []paneFocus {
 	if m.prsVisible() {
 		order = append(order, focusPRs)
 	}
-	return append(order, focusChanges, focusGraph)
+	return append(order, focusChanges, focusDiff, focusGraph)
 }
 
 func (m *appModel) cycleFocus(dir int) {
@@ -47,6 +47,8 @@ func (m *appModel) scrollFocused(delta int) {
 	switch m.focus {
 	case focusChanges:
 		m.changesOff = max(0, m.changesOff+delta)
+	case focusDiff:
+		m.diffOff = max(0, m.diffOff+delta)
 	case focusGraph:
 		m.graphOff = max(0, m.graphOff+delta)
 	case focusPRs:
@@ -58,6 +60,8 @@ func (m *appModel) scrollHome() tea.Cmd {
 	switch m.focus {
 	case focusChanges:
 		m.changesOff = 0
+	case focusDiff:
+		m.diffOff = 0
 	case focusGraph:
 		m.graphOff = 0
 	case focusPRs:
@@ -74,6 +78,8 @@ func (m *appModel) scrollEnd() tea.Cmd {
 	switch m.focus {
 	case focusChanges:
 		m.changesOff = 1 << 30
+	case focusDiff:
+		m.diffOff = 1 << 30
 	case focusGraph:
 		m.graphOff = 1 << 30
 	case focusPRs:

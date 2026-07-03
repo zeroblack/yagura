@@ -54,8 +54,9 @@ git command that writes — so it's safe to keep on screen all day.
 
 ![the worktree inspector](assets/inspector.png)
 
-- **CHANGES**, **GRAPH** and **PR** panes for the selected worktree, without leaving the
-  view — uncommitted files, the commit graph, and pull-request state side by side.
+- **CHANGES**, **DIFF**, **GRAPH** and **PR** panes for the selected worktree, without
+  leaving the view — uncommitted files, a live look at the most recently changed file, the
+  commit graph, and pull-request state side by side.
 - `git status`, `diff --stat` and recent commits on demand (`s` / `d` / `c`), colorized.
 - **Ahead/behind** divergence and **PR status badges** via the GitHub CLI (`gh`), cached.
 - An **attention banner** surfaces branches that need action.
@@ -131,7 +132,7 @@ forge integration, theme, and every keybinding. See
 | --------------------------- | ------------------------------------------------------- |
 | `↑ ↓` `j k`                 | move selection / scroll the focused pane                |
 | `tab` `]` / `shift+tab` `[` | cycle pane focus                                        |
-| `1` `2` `3` `4`             | jump to the worktrees / changes / graph / PR pane       |
+| `1` `2` `3` `4` `5`         | jump to the worktrees / PR / changes / diff / graph pane |
 | `space`                     | pin the focused worktree to the top (immune to re-sort) |
 | `o`                         | toggle group-by-repo / flat-by-activity                 |
 | `s` `d` `c` `l`             | status / diff / commits / agent log of the selection    |
