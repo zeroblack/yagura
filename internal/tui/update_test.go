@@ -95,6 +95,13 @@ func TestFooterReflectsConfiguredKeys(t *testing.T) {
 	require.NotContains(t, out, "…", "a wide terminal shows every hint without truncation")
 }
 
+func TestFooterIncludesPaneDiffKey(t *testing.T) {
+	m := New(config.Default())
+	m.Update(tea.WindowSizeMsg{Width: 200, Height: 40})
+	out := stripANSI(m.footerLine)
+	require.Contains(t, out, "1·2·3·4·5")
+}
+
 func TestFooterTruncatesButAlwaysKeepsHelp(t *testing.T) {
 	m := New(config.Default())
 	for _, width := range []int{20, 30, 40, 60, 80} {

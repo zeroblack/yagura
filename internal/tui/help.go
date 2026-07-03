@@ -29,7 +29,7 @@ func helpRows(k config.KeysConfig) []helpRow {
 		{[]string{k.Inspect}, "inspect worktree"},
 		{k.FocusNext, "focus next pane"},
 		{k.FocusPrev, "focus prev pane"},
-		{joinKeys(k.PaneList, k.PaneChange, k.PaneGraph, k.PanePR), "jump to pane"},
+		{joinKeys(k.PaneList, k.PaneChange, k.PaneDiff, k.PaneGraph, k.PanePR), "jump to pane"},
 		{k.Up, "scroll up"},
 		{k.Down, "scroll down"},
 		{k.PageUp, "page up"},

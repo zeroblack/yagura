@@ -40,3 +40,14 @@ func TestHelpPanelListsEveryBinding(t *testing.T) {
 		require.Contains(t, out, want)
 	}
 }
+
+func TestHelpRowsIncludePaneDiffKey(t *testing.T) {
+	rows := helpRows(config.Default().Keys)
+	for _, r := range rows {
+		if r.label == "jump to pane" {
+			require.Contains(t, r.keys, "5")
+			return
+		}
+	}
+	t.Fatal("no 'jump to pane' row found")
+}

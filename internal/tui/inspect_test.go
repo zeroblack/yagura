@@ -31,6 +31,7 @@ func TestDefaultLayoutShowsInspector(t *testing.T) {
 	require.NotNil(t, m.inspect.wt, "selected worktree must be auto-targeted without Enter")
 	out := stripANSI(m.render())
 	require.Contains(t, out, "CHANGES")
+	require.Contains(t, out, "DIFF")
 	require.Contains(t, out, "GRAPH")
 }
 
@@ -102,6 +103,7 @@ func TestPaneTitlesShowAllGroups(t *testing.T) {
 	out := stripANSI(m.render())
 	require.Contains(t, out, "WORKTREES")
 	require.Contains(t, out, "CHANGES")
+	require.Contains(t, out, "DIFF")
 	require.Contains(t, out, "GRAPH")
 }
 
@@ -245,4 +247,75 @@ func TestInspectChangesRender(t *testing.T) {
 	require.Contains(t, out, "M")
 	require.Contains(t, out, "notes/scratch.md")
 	require.Contains(t, out, "?")
+}
+
+func TestDiffPaneRendersUnifiedDiffWithColorRoles(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 120, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.diffTarget = "src/app.go"
+	m.inspect.diffContent = "@@ -1,2 +1,3 @@\n-old line\n+new line\n context line"
+	m.inspect.diffLoaded = true
+	out := stripANSI(strings.Join(m.diffContent(), "\n"))
+	require.Contains(t, out, "src/app.go")
+	require.Contains(t, out, "@@ -1,2 +1,3 @@")
+	require.Contains(t, out, "-old line")
+	require.Contains(t, out, "+new line")
+}
+
+func TestDiffPaneShowsCleanPlaceholder(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 120, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.diffLoaded = true
+	out := stripANSI(strings.Join(m.diffContent(), "\n"))
+	require.Contains(t, out, "working tree clean")
+}
+
+func TestDiffPaneTruncatesAtLineLimit(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffLineLimit = 2
+	m.width, m.height = 120, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.diffTarget = "big.go"
+	m.inspect.diffContent = "+a\n+b\n+c\n+d"
+	m.inspect.diffLoaded = true
+	out := stripANSI(strings.Join(m.diffContent(), "\n"))
+	require.Contains(t, out, "+2 more")
+	require.NotContains(t, out, "+c")
+}
+
+func TestSplitPanesThreeWay(t *testing.T) {
+	ch, df, gr := splitPanes(30, focusList)
+	require.Equal(t, 10, ch)
+	require.Equal(t, 10, df)
+	require.Equal(t, 10, gr)
+
+	ch, df, gr = splitPanes(30, focusChanges)
+	require.Greater(t, ch, df)
+	require.Greater(t, ch, gr)
+	require.Equal(t, 30, ch+df+gr)
+
+	ch, df, gr = splitPanes(30, focusDiff)
+	require.Greater(t, df, ch)
+	require.Greater(t, df, gr)
+	require.Equal(t, 30, ch+df+gr)
+
+	ch, df, gr = splitPanes(30, focusGraph)
+	require.Greater(t, gr, ch)
+	require.Greater(t, gr, df)
+	require.Equal(t, 30, ch+df+gr)
+}
+
+func TestSplitPanesThreeWaySumsAtMinimumRem(t *testing.T) {
+	for _, focus := range []paneFocus{focusList, focusChanges, focusDiff, focusGraph} {
+		ch, df, gr := splitPanes(3, focus)
+		require.Equal(t, 3, ch+df+gr, "focus %v must not exceed the rem=3 budget", focus)
+		require.GreaterOrEqual(t, ch, 1)
+		require.GreaterOrEqual(t, df, 1)
+		require.GreaterOrEqual(t, gr, 1)
+	}
 }
