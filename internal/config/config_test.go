@@ -86,6 +86,7 @@ func TestInspectForgeDefaults(t *testing.T) {
 	require.Equal(t, 200, c.Inspect.GraphMax)
 	require.True(t, c.Inspect.AttentionFirst)
 	require.Equal(t, 400, c.Inspect.DiffLineLimit)
+	require.Equal(t, time.Minute, c.Inspect.DiffStaleAfter)
 	require.Equal(t, []string{"4"}, c.Keys.PaneDiff)
 	require.Equal(t, "auto", c.Forge.Enabled)
 	require.Equal(t, 60*time.Second, c.Forge.TTL)
@@ -133,4 +134,15 @@ func TestLoadInspectDiffLineLimitAndPaneDiffKey(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 100, c.Inspect.DiffLineLimit)
 	require.Equal(t, []string{"6"}, c.Keys.PaneDiff)
+}
+
+func TestLoadInspectDiffStaleAfter(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+	body := "inspect:\n  diff_stale_after: 30s\n"
+	require.NoError(t, os.WriteFile(path, []byte(body), 0o644))
+
+	c, err := Load(path)
+	require.NoError(t, err)
+	require.Equal(t, 30*time.Second, c.Inspect.DiffStaleAfter)
 }

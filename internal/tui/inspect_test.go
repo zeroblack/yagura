@@ -319,3 +319,56 @@ func TestSplitPanesThreeWaySumsAtMinimumRem(t *testing.T) {
 		require.GreaterOrEqual(t, gr, 1)
 	}
 }
+
+func TestDiffPaneShowsWaitingPlaceholderWhenStale(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffStaleAfter = time.Minute
+	m.width, m.height = 120, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.wt.Agents = nil
+	m.inspect.diffTarget = "src/app.go"
+	m.inspect.diffContent = "+new line"
+	m.inspect.diffLoaded = true
+	m.inspect.diffModTime = time.Now().Add(-2 * time.Minute)
+
+	out := stripANSI(strings.Join(m.diffContent(), "\n"))
+	require.Contains(t, out, "waiting for changes")
+	require.NotContains(t, out, "src/app.go")
+	require.NotContains(t, out, "+new line")
+}
+
+func TestDiffPaneKeepsRenderingWhenAgentIsLive(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffStaleAfter = time.Minute
+	m.width, m.height = 120, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.diffTarget = "src/app.go"
+	m.inspect.diffContent = "+new line"
+	m.inspect.diffLoaded = true
+	m.inspect.diffModTime = time.Now().Add(-2 * time.Minute)
+
+	out := stripANSI(strings.Join(m.diffContent(), "\n"))
+	require.Contains(t, out, "src/app.go")
+	require.Contains(t, out, "+new line")
+	require.NotContains(t, out, "waiting for changes")
+}
+
+func TestDiffPaneKeepsRenderingWhenFresh(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffStaleAfter = time.Minute
+	m.width, m.height = 120, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.wt.Agents = nil
+	m.inspect.diffTarget = "src/app.go"
+	m.inspect.diffContent = "+new line"
+	m.inspect.diffLoaded = true
+	m.inspect.diffModTime = time.Now()
+
+	out := stripANSI(strings.Join(m.diffContent(), "\n"))
+	require.Contains(t, out, "src/app.go")
+	require.Contains(t, out, "+new line")
+	require.NotContains(t, out, "waiting for changes")
+}

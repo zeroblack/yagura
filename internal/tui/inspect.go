@@ -57,6 +57,7 @@ type inspectState struct {
 	diffContent  string
 	diffLoaded   bool
 	diffErr      error
+	diffModTime  time.Time
 }
 
 type inspectStatsMsg struct {

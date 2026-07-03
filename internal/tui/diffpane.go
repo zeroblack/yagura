@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 	"github.com/zeroblack/yagura/internal/git"
@@ -73,10 +74,12 @@ func (m *appModel) followNewestDiff() tea.Cmd {
 		m.inspect.diffContent = ""
 		m.inspect.diffErr = nil
 		m.inspect.diffLoaded = true
+		m.inspect.diffModTime = time.Time{}
 		return nil
 	}
 	m.inspect.diffTarget = f.Path
 	m.inspect.diffLoaded = false
+	m.inspect.diffModTime = f.ModTime
 	return loadInspectDiff(m.gitSvc, m.inspect.wt.Path, *f)
 }
 
@@ -85,4 +88,18 @@ func (m *appModel) refreshInspectFast() tea.Cmd {
 		return nil
 	}
 	return loadInspectStatus(m.gitSvc, m.inspect.wt.Path)
+}
+
+func (m *appModel) diffIsStale() bool {
+	if m.inspect.diffModTime.IsZero() {
+		return false
+	}
+	if m.inspect.wt != nil {
+		for _, a := range m.inspect.wt.Agents {
+			if a.Liveness.IsLive() {
+				return false
+			}
+		}
+	}
+	return time.Since(m.inspect.diffModTime) > m.cfg.Inspect.DiffStaleAfter
 }
