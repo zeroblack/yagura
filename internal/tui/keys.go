@@ -34,6 +34,8 @@ func (m *appModel) handleKey(s string) tea.Cmd {
 		m.focus = focusList
 	case actPaneChanges:
 		m.focus = focusChanges
+	case actPaneDiff:
+		m.focus = focusDiff
 	case actPaneGraph:
 		m.focus = focusGraph
 	case actPanePR:

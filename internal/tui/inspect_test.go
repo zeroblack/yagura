@@ -34,11 +34,13 @@ func TestDefaultLayoutShowsInspector(t *testing.T) {
 	require.Contains(t, out, "GRAPH")
 }
 
-func TestFocusCyclesWorktreesChangesGraph(t *testing.T) {
+func TestFocusCyclesWorktreesChangesDiffGraph(t *testing.T) {
 	m := New(config.Default())
 	require.Equal(t, focusList, m.focus)
 	m.cycleFocus(1)
 	require.Equal(t, focusChanges, m.focus)
+	m.cycleFocus(1)
+	require.Equal(t, focusDiff, m.focus)
 	m.cycleFocus(1)
 	require.Equal(t, focusGraph, m.focus)
 	m.cycleFocus(1)
@@ -52,9 +54,27 @@ func TestBracketKeysCycleFocus(t *testing.T) {
 	m.handleKey("]")
 	require.Equal(t, focusChanges, m.focus)
 	m.handleKey("]")
-	require.Equal(t, focusGraph, m.focus)
+	require.Equal(t, focusDiff, m.focus)
 	m.handleKey("[")
 	require.Equal(t, focusChanges, m.focus)
+}
+
+func TestPaneDiffKeyJumpsToDiffFocus(t *testing.T) {
+	m := New(config.Default())
+	m.handleKey("5")
+	require.Equal(t, focusDiff, m.focus)
+}
+
+func TestScrollFocusedPaneMovesDiffOffset(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 110, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.focus = focusDiff
+	m.scrollDown()
+	m.scrollDown()
+	require.Equal(t, 2, m.diffOff)
+	require.Equal(t, 0, m.graphOff, "scrolling diff must not move the graph offset")
 }
 
 func TestScrollFocusedPaneMovesOffset(t *testing.T) {

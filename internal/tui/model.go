@@ -59,6 +59,7 @@ type appModel struct {
 	inspectGen    int
 	focus         paneFocus
 	changesOff    int
+	diffOff       int
 	graphOff      int
 	prsOff        int
 	listOff       int
