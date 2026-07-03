@@ -126,3 +126,72 @@ func TestRefreshInspectFastNoopsWithoutSelection(t *testing.T) {
 	m := New(config.Default())
 	require.Nil(t, m.refreshInspectFast())
 }
+
+func TestDiffIsStaleZeroModTimeIsNotStale(t *testing.T) {
+	m := New(config.Default())
+	require.False(t, m.diffIsStale(), "no target selected yet, nothing to call stale")
+}
+
+func TestDiffIsStaleFreshModTimeIsNotStale(t *testing.T) {
+	m := New(config.Default())
+	m.inspect.wt = &model.Worktree{}
+	m.inspect.diffModTime = time.Now()
+	require.False(t, m.diffIsStale())
+}
+
+func TestDiffIsStaleOldModTimeWithoutLiveAgentIsStale(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffStaleAfter = time.Minute
+	m.inspect.wt = &model.Worktree{}
+	m.inspect.diffModTime = time.Now().Add(-2 * time.Minute)
+	require.True(t, m.diffIsStale())
+}
+
+func TestDiffIsStaleOldModTimeWithLiveAgentIsNotStale(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffStaleAfter = time.Minute
+	m.inspect.wt = &model.Worktree{Agents: []model.AgentSession{{Liveness: model.LiveActive}}}
+	m.inspect.diffModTime = time.Now().Add(-2 * time.Minute)
+	require.False(t, m.diffIsStale(), "a live agent overrides the time threshold")
+}
+
+func TestDiffIsStaleOldModTimeWithRecentAgentIsNotStale(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffStaleAfter = time.Minute
+	m.inspect.wt = &model.Worktree{Agents: []model.AgentSession{{Liveness: model.LiveRecent}}}
+	m.inspect.diffModTime = time.Now().Add(-2 * time.Minute)
+	require.False(t, m.diffIsStale())
+}
+
+func TestDiffIsStaleOldModTimeWithIdleAgentIsStale(t *testing.T) {
+	m := New(config.Default())
+	m.cfg.Inspect.DiffStaleAfter = time.Minute
+	m.inspect.wt = &model.Worktree{Agents: []model.AgentSession{{Liveness: model.LiveIdle}}}
+	m.inspect.diffModTime = time.Now().Add(-2 * time.Minute)
+	require.True(t, m.diffIsStale(), "an idle agent does not count as live")
+}
+
+func TestFollowNewestDiffStampsModTime(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 110, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	newest := time.Now()
+	m.inspect.status = model.StatusResult{Files: []model.FileChange{
+		{Path: "old.go", ModTime: newest.Add(-time.Hour)},
+		{Path: "new.go", ModTime: newest},
+	}}
+	m.followNewestDiff()
+	require.Equal(t, newest, m.inspect.diffModTime)
+}
+
+func TestFollowNewestDiffClearsModTimeWhenTreeIsClean(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 110, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.diffTarget = "stale.go"
+	m.inspect.diffModTime = time.Now()
+	m.followNewestDiff()
+	require.True(t, m.inspect.diffModTime.IsZero())
+}
