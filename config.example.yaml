@@ -58,6 +58,9 @@ inspect:
   file_limit: 40
   # Maximum lines rendered in the DIFF pane before truncating.
   diff_line_limit: 400
+  # How long since the last change before the DIFF pane clears and shows a
+  # waiting placeholder. Ignored while a live/recent agent is detected.
+  diff_stale_after: 1m
   # Show an attention banner for branches that need action.
   attention_first: true
 
