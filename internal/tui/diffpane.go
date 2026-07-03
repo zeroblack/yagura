@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/zeroblack/yagura/internal/git"
 	"github.com/zeroblack/yagura/internal/model"
 )
@@ -46,4 +47,42 @@ func syntheticDiff(wtPath, path string) (string, error) {
 		lines[i] = "+" + l
 	}
 	return strings.Join(lines, "\n"), nil
+}
+
+type inspectDiffMsg struct {
+	wtPath  string
+	path    string
+	content string
+	err     error
+}
+
+func loadInspectDiff(svc *git.Service, wtPath string, f model.FileChange) tea.Cmd {
+	return func() tea.Msg {
+		content, err := diffContentFor(svc, wtPath, f)
+		return inspectDiffMsg{wtPath: wtPath, path: f.Path, content: content, err: err}
+	}
+}
+
+func (m *appModel) followNewestDiff() tea.Cmd {
+	if m.inspect.wt == nil {
+		return nil
+	}
+	f := newestChangedFile(m.inspect.status.Files)
+	if f == nil {
+		m.inspect.diffTarget = ""
+		m.inspect.diffContent = ""
+		m.inspect.diffErr = nil
+		m.inspect.diffLoaded = true
+		return nil
+	}
+	m.inspect.diffTarget = f.Path
+	m.inspect.diffLoaded = false
+	return loadInspectDiff(m.gitSvc, m.inspect.wt.Path, *f)
+}
+
+func (m *appModel) refreshInspectFast() tea.Cmd {
+	if m.inspect.wt == nil {
+		return nil
+	}
+	return loadInspectStatus(m.gitSvc, m.inspect.wt.Path)
 }

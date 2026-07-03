@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/zeroblack/yagura/internal/config"
 	"github.com/zeroblack/yagura/internal/model"
 )
 
@@ -77,4 +78,51 @@ func TestDiffContentForUntrackedBinarySkipsGit(t *testing.T) {
 	out, err := diffContentFor(nil, "/does/not/matter", model.FileChange{Path: "logo.png", Status: model.StatusUntracked, Added: -1, Deleted: -1})
 	require.NoError(t, err)
 	require.Equal(t, "(binary file)", out)
+}
+
+func TestFollowNewestDiffQueuesLoadForNewestFile(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 110, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.status = model.StatusResult{Files: []model.FileChange{
+		{Path: "old.go", ModTime: time.Now().Add(-time.Hour)},
+		{Path: "new.go", ModTime: time.Now()},
+	}}
+	cmd := m.followNewestDiff()
+	require.Equal(t, "new.go", m.inspect.diffTarget)
+	require.False(t, m.inspect.diffLoaded)
+	require.NotNil(t, cmd)
+}
+
+func TestFollowNewestDiffClearsWhenTreeIsClean(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 110, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.diffTarget = "stale.go"
+	cmd := m.followNewestDiff()
+	require.Equal(t, "", m.inspect.diffTarget)
+	require.True(t, m.inspect.diffLoaded)
+	require.Nil(t, cmd)
+}
+
+func TestInspectDiffMsgDropsStaleResults(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 110, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.diffTarget = "current.go"
+
+	m.Update(inspectDiffMsg{wtPath: m.inspect.wt.Path, path: "other.go", content: "stale"})
+	require.Empty(t, m.inspect.diffContent, "a result for a file that is no longer the target is dropped")
+
+	m.Update(inspectDiffMsg{wtPath: m.inspect.wt.Path, path: "current.go", content: "+line"})
+	require.Equal(t, "+line", m.inspect.diffContent)
+	require.True(t, m.inspect.diffLoaded)
+}
+
+func TestRefreshInspectFastNoopsWithoutSelection(t *testing.T) {
+	m := New(config.Default())
+	require.Nil(t, m.refreshInspectFast())
 }

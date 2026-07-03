@@ -162,6 +162,13 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.inspect.statusErr = msg.err
 			m.inspect.statusLoaded = true
 			m.inspect.sorted = sortChanges(msg.status.Files, m.cfg.Inspect.ChangesSort)
+			return m, m.followNewestDiff()
+		}
+	case inspectDiffMsg:
+		if m.inspect.wt != nil && msg.wtPath == m.inspect.wt.Path && msg.path == m.inspect.diffTarget {
+			m.inspect.diffContent = msg.content
+			m.inspect.diffErr = msg.err
+			m.inspect.diffLoaded = true
 		}
 	case inspectGraphMsg:
 		if m.inspect.wt != nil && msg.wtPath == m.inspect.wt.Path {
@@ -194,7 +201,11 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case time.Since(m.lastSync) >= m.cfg.Refresh.Tick:
 				m.scanInFlight = true
 				m.sync.start(scanAgent, now)
-				scan = m.loadAgents()
+				agentCmds := []tea.Cmd{m.loadAgents()}
+				if fast := m.refreshInspectFast(); fast != nil {
+					agentCmds = append(agentCmds, fast)
+				}
+				scan = tea.Batch(agentCmds...)
 			}
 		}
 		cmds := []tea.Cmd{tick(m.tickInterval(now))}
