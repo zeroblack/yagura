@@ -298,6 +298,9 @@ func (m *appModel) diffContent() []string {
 	if m.inspect.diffTarget == "" {
 		return []string{m.fg(theme.RoleTextMuted).Render("   working tree clean")}
 	}
+	if m.diffIsStale() {
+		return []string{m.fg(theme.RoleTextMuted).Render("   waiting for changes — last touched " + relTime(m.inspect.diffModTime))}
+	}
 	return m.diffLines()
 }
 
