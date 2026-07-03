@@ -42,6 +42,7 @@ type InspectConfig struct {
 	GraphMax       int
 	FileLimit      int
 	DiffLineLimit  int
+	DiffStaleAfter time.Duration
 	AttentionFirst bool
 }
 
@@ -122,7 +123,7 @@ func Default() Config {
 		Refresh:   RefreshConfig{Tick: 5 * time.Second, FullTick: 30 * time.Second},
 		Indicator: IndicatorConfig{Motion: "full", Frame: 80 * time.Millisecond, FullRotations: 2, AgentBlip: true},
 		Sort:      SortConfig{Default: "activity", GroupByRepo: true},
-		Inspect:   InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, DiffLineLimit: 400, AttentionFirst: true},
+		Inspect:   InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, DiffLineLimit: 400, DiffStaleAfter: time.Minute, AttentionFirst: true},
 		Forge:     ForgeConfig{Enabled: "auto", TTL: 60 * time.Second},
 		Display:   DisplayConfig{ProjectFrom: "parent", ProjectContainers: []string{"app", "src", "apps", "packages"}},
 		Keys:      defaultKeys(),
@@ -200,6 +201,7 @@ type fileConfig struct {
 		GraphMax       *int    `yaml:"graph_max"`
 		FileLimit      *int    `yaml:"file_limit"`
 		DiffLineLimit  *int    `yaml:"diff_line_limit"`
+		DiffStaleAfter *string `yaml:"diff_stale_after"`
 		AttentionFirst *bool   `yaml:"attention_first"`
 	} `yaml:"inspect"`
 	Forge struct {
@@ -337,6 +339,9 @@ func (f fileConfig) applyTo(c *Config) {
 	}
 	if f.Inspect.DiffLineLimit != nil && *f.Inspect.DiffLineLimit > 0 {
 		c.Inspect.DiffLineLimit = *f.Inspect.DiffLineLimit
+	}
+	if d, ok := parseDur(f.Inspect.DiffStaleAfter); ok {
+		c.Inspect.DiffStaleAfter = d
 	}
 	if f.Inspect.AttentionFirst != nil {
 		c.Inspect.AttentionFirst = *f.Inspect.AttentionFirst
