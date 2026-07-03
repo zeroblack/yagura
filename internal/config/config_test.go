@@ -86,7 +86,7 @@ func TestInspectForgeDefaults(t *testing.T) {
 	require.Equal(t, 200, c.Inspect.GraphMax)
 	require.True(t, c.Inspect.AttentionFirst)
 	require.Equal(t, 400, c.Inspect.DiffLineLimit)
-	require.Equal(t, []string{"5"}, c.Keys.PaneDiff)
+	require.Equal(t, []string{"4"}, c.Keys.PaneDiff)
 	require.Equal(t, "auto", c.Forge.Enabled)
 	require.Equal(t, 60*time.Second, c.Forge.TTL)
 	require.Equal(t, "enter", c.Keys.Inspect)

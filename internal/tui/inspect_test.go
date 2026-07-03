@@ -62,7 +62,7 @@ func TestBracketKeysCycleFocus(t *testing.T) {
 
 func TestPaneDiffKeyJumpsToDiffFocus(t *testing.T) {
 	m := New(config.Default())
-	m.handleKey("5")
+	m.handleKey("4")
 	require.Equal(t, focusDiff, m.focus)
 }
 

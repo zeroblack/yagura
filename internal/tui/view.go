@@ -170,7 +170,7 @@ func footerEntries(s styleSet, k config.KeysConfig) []footerEntry {
 		label string
 	}{
 		{primaryKey(k.FocusNext), "focus"},
-		{primaryKey(k.PaneList) + "·" + primaryKey(k.PaneChange) + "·" + primaryKey(k.PaneGraph) + "·" + primaryKey(k.PanePR) + "·" + primaryKey(k.PaneDiff), "panes"},
+		{primaryKey(k.PaneList) + "·" + primaryKey(k.PanePR) + "·" + primaryKey(k.PaneChange) + "·" + primaryKey(k.PaneDiff) + "·" + primaryKey(k.PaneGraph), "panes"},
 		{primaryKey(k.Up) + primaryKey(k.Down), "scroll"},
 		{primaryKey(k.Pin), "pin"},
 		{primaryKey(k.Group), "group"},

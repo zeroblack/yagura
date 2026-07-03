@@ -132,7 +132,7 @@ forge integration, theme, and every keybinding. See
 | --------------------------- | ------------------------------------------------------- |
 | `↑ ↓` `j k`                 | move selection / scroll the focused pane                |
 | `tab` `]` / `shift+tab` `[` | cycle pane focus                                        |
-| `1` `2` `3` `4` `5`         | jump to the worktrees / changes / graph / PR / diff pane |
+| `1` `2` `3` `4` `5`         | jump to the worktrees / PR / changes / diff / graph pane |
 | `space`                     | pin the focused worktree to the top (immune to re-sort) |
 | `o`                         | toggle group-by-repo / flat-by-activity                 |
 | `s` `d` `c` `l`             | status / diff / commits / agent log of the selection    |
