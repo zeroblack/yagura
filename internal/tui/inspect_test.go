@@ -107,6 +107,43 @@ func TestPaneTitlesShowAllGroups(t *testing.T) {
 	require.Contains(t, out, "GRAPH")
 }
 
+func TestDiffPaneTitleShowsRealtimeLabel(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 120, 40
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	out := stripANSI(m.render())
+	require.Contains(t, out, "DIFF · realtime")
+}
+
+func TestChangesPaneHeightMatchesContentWhenRoomIsPlentiful(t *testing.T) {
+	m := New(config.Default())
+	m.width, m.height = 120, 50
+	m.applySnapshot(inspectSnap())
+	m.refreshInspect()
+	m.inspect.status = model.StatusResult{Files: []model.FileChange{{Path: "a.go", ModTime: time.Now()}}}
+	m.inspect.sorted = m.inspect.status.Files
+	m.inspect.statusLoaded = true
+	m.inspect.graphLoaded = true
+	m.inspect.diffLoaded = true
+
+	out := m.renderInspectorBody()
+	lines := strings.Split(out, "\n")
+	changesTitle, diffTitle := -1, -1
+	for i, l := range lines {
+		s := stripANSI(l)
+		if strings.Contains(s, "▸ CHANGES") {
+			changesTitle = i
+		}
+		if changesTitle >= 0 && diffTitle == -1 && strings.Contains(s, "▸ DIFF") {
+			diffTitle = i
+		}
+	}
+	require.NotEqual(t, -1, changesTitle)
+	require.NotEqual(t, -1, diffTitle)
+	require.Equal(t, 3, diffTitle-changesTitle, "CHANGES pane must render exactly its 1 line of content plus its blank separator, no padding")
+}
+
 func TestProjectHeaderShowsProjectAndStats(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
@@ -289,22 +326,22 @@ func TestDiffPaneTruncatesAtLineLimit(t *testing.T) {
 }
 
 func TestSplitPanesThreeWay(t *testing.T) {
-	ch, df, gr := splitPanes(30, focusList)
+	ch, df, gr := splitPanes(30, focusList, 20, 20, 20)
 	require.Equal(t, 10, ch)
 	require.Equal(t, 10, df)
 	require.Equal(t, 10, gr)
 
-	ch, df, gr = splitPanes(30, focusChanges)
+	ch, df, gr = splitPanes(30, focusChanges, 20, 20, 20)
 	require.Greater(t, ch, df)
 	require.Greater(t, ch, gr)
 	require.Equal(t, 30, ch+df+gr)
 
-	ch, df, gr = splitPanes(30, focusDiff)
+	ch, df, gr = splitPanes(30, focusDiff, 20, 20, 20)
 	require.Greater(t, df, ch)
 	require.Greater(t, df, gr)
 	require.Equal(t, 30, ch+df+gr)
 
-	ch, df, gr = splitPanes(30, focusGraph)
+	ch, df, gr = splitPanes(30, focusGraph, 20, 20, 20)
 	require.Greater(t, gr, ch)
 	require.Greater(t, gr, df)
 	require.Equal(t, 30, ch+df+gr)
@@ -312,12 +349,33 @@ func TestSplitPanesThreeWay(t *testing.T) {
 
 func TestSplitPanesThreeWaySumsAtMinimumRem(t *testing.T) {
 	for _, focus := range []paneFocus{focusList, focusChanges, focusDiff, focusGraph} {
-		ch, df, gr := splitPanes(3, focus)
+		ch, df, gr := splitPanes(3, focus, 20, 20, 20)
 		require.Equal(t, 3, ch+df+gr, "focus %v must not exceed the rem=3 budget", focus)
 		require.GreaterOrEqual(t, ch, 1)
 		require.GreaterOrEqual(t, df, 1)
 		require.GreaterOrEqual(t, gr, 1)
 	}
+}
+
+func TestSplitPanesFitsNaturallyGivesLeftoverToDiff(t *testing.T) {
+	ch, df, gr := splitPanes(30, focusList, 3, 3, 3)
+	require.Equal(t, 3, ch)
+	require.Equal(t, 3, gr)
+	require.Equal(t, 24, df, "all leftover room goes to DIFF once CHANGES/GRAPH/DIFF fit their natural content")
+}
+
+func TestSplitPanesCapsChangesAndGraphAtHalfRem(t *testing.T) {
+	ch, df, gr := splitPanes(30, focusList, 3, 3, 25)
+	require.Equal(t, 15, gr, "GRAPH cannot exceed half of rem even if it has more natural content than that")
+	require.Equal(t, 3, ch)
+	require.Equal(t, 12, df)
+	require.Equal(t, 30, ch+df+gr)
+}
+
+func TestSplitPanesIgnoresFocusWhenContentFits(t *testing.T) {
+	ch1, df1, gr1 := splitPanes(30, focusList, 3, 3, 3)
+	ch2, df2, gr2 := splitPanes(30, focusChanges, 3, 3, 3)
+	require.Equal(t, []int{ch1, df1, gr1}, []int{ch2, df2, gr2}, "once everything fits naturally, which pane has focus doesn't change the split")
 }
 
 func TestDiffPaneShowsWaitingPlaceholderWhenStale(t *testing.T) {

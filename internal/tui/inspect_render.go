@@ -572,12 +572,11 @@ func (m *appModel) renderInspectorBody() string {
 		m.prsOff = clampOffset(m.prsOff, len(prs), prsH)
 	}
 
-	rem := max(3, bodyAvail-listH-prsH)
-	chH, dfH, grH := splitPanes(rem, m.focus)
-
 	changes := m.changesContent()
 	diff := m.diffContent()
 	graph := m.graphContent()
+	rem := max(3, bodyAvail-listH-prsH)
+	chH, dfH, grH := splitPanes(rem, m.focus, len(changes), len(diff), len(graph))
 	m.changesOff = clampOffset(m.changesOff, len(changes), chH)
 	m.diffOff = clampOffset(m.diffOff, len(diff), dfH)
 	m.graphOff = clampOffset(m.graphOff, len(graph), grH)
@@ -593,7 +592,7 @@ func (m *appModel) renderInspectorBody() string {
 	b.WriteString(m.paneTitle("CHANGES", len(m.inspect.status.Files), m.focus == focusChanges, m.changesOff, chH, len(changes)) + "\n")
 	b.WriteString(windowLines(changes, m.changesOff, chH))
 	b.WriteString("\n")
-	b.WriteString(m.paneTitle("DIFF", 0, m.focus == focusDiff, m.diffOff, dfH, len(diff)) + "\n")
+	b.WriteString(m.paneTitle("DIFF · realtime", 0, m.focus == focusDiff, m.diffOff, dfH, len(diff)) + "\n")
 	b.WriteString(windowLines(diff, m.diffOff, dfH))
 	b.WriteString("\n")
 	b.WriteString(m.paneTitle("GRAPH", 0, m.focus == focusGraph, m.graphOff, grH, len(graph)) + "\n")
@@ -601,7 +600,14 @@ func (m *appModel) renderInspectorBody() string {
 	return strings.TrimRight(b.String(), "\n")
 }
 
-func splitPanes(rem int, focus paneFocus) (chH, diffH, grH int) {
+func splitPanes(rem int, focus paneFocus, chLen, dfLen, grLen int) (chH, diffH, grH int) {
+	shareCap := max(1, rem/2)
+	chNeed := clampInt(chLen, 1, shareCap)
+	grNeed := clampInt(grLen, 1, shareCap)
+	dfNeed := max(1, dfLen)
+	if total := chNeed + dfNeed + grNeed; total <= rem {
+		return chNeed, dfNeed + (rem - total), grNeed
+	}
 	switch focus {
 	case focusChanges:
 		ch := min(max(1, (rem*3+2)/5), rem-2)
