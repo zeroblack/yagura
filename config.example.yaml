@@ -25,6 +25,9 @@ agents:
   active_window: 10m
   # Transcripts written within this window count as actively working.
   tool_timeout: 30s
+  # How long an agent must keep editing another worktree before the LEAK chip
+  # shows. 0 flags the first cross-worktree edit immediately.
+  leak_confirm: 15s
 
 refresh:
   # Fast tick: re-detect live agents (transcript freshness) and re-sort. Cheap.
