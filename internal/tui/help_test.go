@@ -24,7 +24,7 @@ func TestHelpToggle(t *testing.T) {
 
 func TestHelpClosesOpenDetail(t *testing.T) {
 	m := New(config.Default())
-	m.applySnapshot(inspectSnap())
+	m.applySnapshot(inspectSnap(), true)
 	m.detail = detailDiff
 
 	m.handleKey("?")

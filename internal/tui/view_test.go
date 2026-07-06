@@ -21,7 +21,7 @@ func TestViewShowsBranchAndState(t *testing.T) {
 				{Tool: "claude", State: model.StateRunning, Task: "running go test", Liveness: model.LiveActive},
 			}},
 		}},
-	}})
+	}}, true)
 	out := stripANSI(m.render())
 	require.Contains(t, out, "feat/togi-mvp")
 	require.Contains(t, out, "RUNNING")
@@ -37,7 +37,7 @@ func TestViewShowsLeakChipWhenAgentEditsOtherWorktree(t *testing.T) {
 				{Tool: "claude", State: model.StateEditing, Task: "editing lib.rs", Liveness: model.LiveActive, LeakTarget: "main"},
 			}},
 		}},
-	}})
+	}}, true)
 	out := stripANSI(m.render())
 	require.Contains(t, out, "LEAK → main")
 }
@@ -51,7 +51,7 @@ func TestViewOmitsLeakChipWithoutLeak(t *testing.T) {
 				{Tool: "claude", State: model.StateEditing, Task: "editing lib.rs", Liveness: model.LiveActive},
 			}},
 		}},
-	}})
+	}}, true)
 	out := stripANSI(m.render())
 	require.NotContains(t, out, "LEAK")
 }

@@ -37,7 +37,7 @@ const errFake = fakeErr("scan failed")
 
 func TestOpenDetailLoadsAsynchronously(t *testing.T) {
 	m := New(config.Default())
-	m.applySnapshot(inspectSnap())
+	m.applySnapshot(inspectSnap(), true)
 
 	cmd := m.handleKey("d")
 	require.Equal(t, detailDiff, m.detail)
@@ -55,7 +55,7 @@ func TestOpenDetailLoadsAsynchronously(t *testing.T) {
 
 func TestStatusAndAgentLogKeysOpenDetail(t *testing.T) {
 	m := New(config.Default())
-	m.applySnapshot(inspectSnap())
+	m.applySnapshot(inspectSnap(), true)
 
 	m.handleKey("s")
 	require.Equal(t, detailStatus, m.detail)
@@ -73,7 +73,7 @@ func TestKeymapHonorsConfigOverrides(t *testing.T) {
 	cfg.Keys.Quit = []string{"x"}
 	cfg.Keys.Diff = []string{"D"}
 	m := New(cfg)
-	m.applySnapshot(inspectSnap())
+	m.applySnapshot(inspectSnap(), true)
 
 	cmd := m.handleKey("x")
 	require.NotNil(t, cmd)
@@ -129,7 +129,7 @@ func TestRenderWorktreeShowsLockedAndPrunable(t *testing.T) {
 	snap := inspectSnap()
 	snap.Repos[0].Worktrees[0].Locked = true
 	snap.Repos[0].Worktrees[0].Prunable = true
-	m.applySnapshot(snap)
+	m.applySnapshot(snap, true)
 	out := stripANSI(m.render())
 	require.Contains(t, out, "[locked]")
 	require.Contains(t, out, "[prunable]")

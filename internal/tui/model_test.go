@@ -18,14 +18,14 @@ func sampleSnap() scan.Snapshot {
 
 func TestModelBuildsFlatRows(t *testing.T) {
 	m := New(config.Default())
-	m.applySnapshot(sampleSnap())
+	m.applySnapshot(sampleSnap(), true)
 	require.Equal(t, 2, m.repoCount())
 	require.Equal(t, 3, m.worktreeCount())
 }
 
 func TestToggleGrouping(t *testing.T) {
 	m := New(config.Default())
-	m.applySnapshot(sampleSnap())
+	m.applySnapshot(sampleSnap(), true)
 	require.True(t, m.grouped)
 	groupedRows := len(m.rows)
 	m.toggleGrouping()

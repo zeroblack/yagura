@@ -146,7 +146,7 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.full {
 			m.lastFullSync = time.Now()
 		}
-		return m, m.applySnapshot(msg.snap)
+		return m, m.applySnapshot(msg.snap, msg.full)
 	case detailMsg:
 		if m.detail == msg.mode && m.selectedWorktreePath() == msg.wtPath {
 			m.detailContent = msg.content
@@ -201,11 +201,7 @@ func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case time.Since(m.lastSync) >= m.cfg.Refresh.Tick:
 				m.scanInFlight = true
 				m.sync.start(scanAgent, now)
-				agentCmds := []tea.Cmd{m.loadAgents()}
-				if fast := m.refreshInspectFast(); fast != nil {
-					agentCmds = append(agentCmds, fast)
-				}
-				scan = tea.Batch(agentCmds...)
+				scan = m.loadAgents()
 			}
 		}
 		cmds := []tea.Cmd{tick(m.tickInterval(now))}
@@ -226,7 +222,7 @@ func (m *appModel) forceRefresh() tea.Cmd {
 	return m.loadSnapshot()
 }
 
-func (m *appModel) applySnapshot(snap scan.Snapshot) tea.Cmd {
+func (m *appModel) applySnapshot(snap scan.Snapshot, full bool) tea.Cmd {
 	m.snap = snap
 	m.lastSync = time.Now()
 	m.prunePin()
@@ -239,7 +235,7 @@ func (m *appModel) applySnapshot(snap scan.Snapshot) tea.Cmd {
 		m.cursor = m.firstFocusableRow()
 		m.syncCursorPath()
 	}
-	cmds := []tea.Cmd{m.refreshInspect()}
+	cmds := []tea.Cmd{m.refreshInspect(full)}
 	if m.detail != detailNone {
 		cmds = append(cmds, m.loadDetailCmd(m.detail))
 	}
@@ -410,7 +406,7 @@ func (m *appModel) togglePin() tea.Cmd {
 	m.cursorPath = w.Path
 	m.rebuildRows()
 	m.rebindCursor()
-	return m.refreshInspect()
+	return m.refreshInspect(false)
 }
 
 func (m *appModel) appendAgentRows(r *model.Repo, w *model.Worktree, nested bool) {

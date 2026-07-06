@@ -39,9 +39,9 @@ func TestGraphAttentionMarker(t *testing.T) {
 			{Path: "/p/wt", Branch: "feat/landing"},
 		},
 	}}}
-	m.applySnapshot(snap)
+	m.applySnapshot(snap, true)
 	m.cursor = 1
-	m.refreshInspect()
+	m.refreshInspect(true)
 	m.inspect.prByBranch = map[string]model.PRInfo{"feat/landing": {Number: 42, CI: model.CIFailing}}
 	m.inspect.graph = []model.GraphLine{
 		{Graph: "* ", HasCommit: true, Hash: "abc", Subject: "x", Refs: []string{"feat/landing"}, When: time.Now()},
@@ -61,9 +61,9 @@ func TestAttentionSectionWhenEnabled(t *testing.T) {
 			{Path: "/p/wt", Branch: "fix/quiz"},
 		},
 	}}}
-	m.applySnapshot(snap)
+	m.applySnapshot(snap, true)
 	m.cursor = 1
-	m.refreshInspect()
+	m.refreshInspect(true)
 	m.inspect.statusLoaded = true
 	m.inspect.prByBranch = map[string]model.PRInfo{"fix/quiz": {Number: 41, Review: model.ReviewChangesRequested}}
 	out := stripANSI(m.attentionBanner())

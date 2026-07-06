@@ -27,7 +27,7 @@ func (m *appModel) scrollUp() tea.Cmd {
 	if m.focus == focusList {
 		m.stepCursor(-1)
 		m.syncCursorPath()
-		return m.refreshInspect()
+		return m.refreshInspect(false)
 	}
 	m.scrollFocused(-1)
 	return nil
@@ -37,7 +37,7 @@ func (m *appModel) scrollDown() tea.Cmd {
 	if m.focus == focusList {
 		m.stepCursor(1)
 		m.syncCursorPath()
-		return m.refreshInspect()
+		return m.refreshInspect(false)
 	}
 	m.scrollFocused(1)
 	return nil
@@ -69,7 +69,7 @@ func (m *appModel) scrollHome() tea.Cmd {
 	default:
 		m.cursor = m.firstFocusableRow()
 		m.syncCursorPath()
-		return m.refreshInspect()
+		return m.refreshInspect(false)
 	}
 	return nil
 }
@@ -90,7 +90,7 @@ func (m *appModel) scrollEnd() tea.Cmd {
 			m.cursor--
 		}
 		m.syncCursorPath()
-		return m.refreshInspect()
+		return m.refreshInspect(false)
 	}
 	return nil
 }

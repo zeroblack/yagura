@@ -83,13 +83,6 @@ func (m *appModel) followNewestDiff() tea.Cmd {
 	return loadInspectDiff(m.gitSvc, m.inspect.wt.Path, *f)
 }
 
-func (m *appModel) refreshInspectFast() tea.Cmd {
-	if m.inspect.wt == nil {
-		return nil
-	}
-	return loadInspectStatus(m.gitSvc, m.inspect.wt.Path)
-}
-
 func (m *appModel) diffIsStale() bool {
 	if m.inspect.diffModTime.IsZero() {
 		return false
