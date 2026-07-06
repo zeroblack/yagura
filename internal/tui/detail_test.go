@@ -9,7 +9,7 @@ import (
 
 func TestDetailModeTransitions(t *testing.T) {
 	m := New(config.Default())
-	m.applySnapshot(sampleSnap())
+	m.applySnapshot(sampleSnap(), true)
 	require.Equal(t, detailNone, m.detail)
 	m.openDetail(detailStatus)
 	require.Equal(t, detailStatus, m.detail)

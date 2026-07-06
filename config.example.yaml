@@ -72,6 +72,8 @@ forge:
   enabled: auto
   # How long PR data is cached.
   ttl: 60s
+  # Hard deadline per gh/git call so a stalled network can never pile up processes.
+  timeout: 30s
 
 display:
   # Project name in the focus card: parent (workspace dir) | repo (folder name).

@@ -50,6 +50,7 @@ type InspectConfig struct {
 type ForgeConfig struct {
 	Enabled string
 	TTL     time.Duration
+	Timeout time.Duration
 }
 
 type DisplayConfig struct {
@@ -126,7 +127,7 @@ func Default() Config {
 		Indicator: IndicatorConfig{Motion: "full", Frame: 80 * time.Millisecond, FullRotations: 2, AgentBlip: true},
 		Sort:      SortConfig{Default: "activity", GroupByRepo: true},
 		Inspect:   InspectConfig{ChangesSort: "mtime", GraphMax: 200, FileLimit: 40, DiffLineLimit: 400, DiffStaleAfter: time.Minute, AttentionFirst: true},
-		Forge:     ForgeConfig{Enabled: "auto", TTL: 60 * time.Second},
+		Forge:     ForgeConfig{Enabled: "auto", TTL: 60 * time.Second, Timeout: 30 * time.Second},
 		Display:   DisplayConfig{ProjectFrom: "parent", ProjectContainers: []string{"app", "src", "apps", "packages"}},
 		Keys:      defaultKeys(),
 		Theme:     "evangelion",
@@ -210,6 +211,7 @@ type fileConfig struct {
 	Forge struct {
 		Enabled *string `yaml:"enabled"`
 		TTL     *string `yaml:"ttl"`
+		Timeout *string `yaml:"timeout"`
 	} `yaml:"forge"`
 	Display struct {
 		ProjectFrom       *string  `yaml:"project_from"`
@@ -357,6 +359,9 @@ func (f fileConfig) applyTo(c *Config) {
 	}
 	if d, ok := parseDur(f.Forge.TTL); ok {
 		c.Forge.TTL = d
+	}
+	if d, ok := parseDur(f.Forge.Timeout); ok {
+		c.Forge.Timeout = d
 	}
 	if f.Display.ProjectFrom != nil && *f.Display.ProjectFrom != "" {
 		c.Display.ProjectFrom = *f.Display.ProjectFrom

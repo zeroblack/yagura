@@ -37,12 +37,12 @@ func rowIndexForPath(m *appModel, path string) int {
 func TestFocusTracksIdentityAcrossResort(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(twoWorktreeSnap())
+	m.applySnapshot(twoWorktreeSnap(), true)
 	m.cursor = rowIndexForPath(m, "/p/proj/wt-feat")
 	m.syncCursorPath()
 	require.Equal(t, "/p/proj/wt-feat", m.cursorPath)
 
-	m.applySnapshot(twoWorktreeSnap("feat", "main"))
+	m.applySnapshot(twoWorktreeSnap("feat", "main"), true)
 	require.NotNil(t, m.selectedWorktree())
 	require.Equal(t, "/p/proj/wt-feat", m.selectedWorktree().Path,
 		"the activity re-sort must not drag the focus onto a different worktree")
@@ -51,7 +51,7 @@ func TestFocusTracksIdentityAcrossResort(t *testing.T) {
 func TestTogglePinAnchorsAboveSiblings(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(twoWorktreeSnap())
+	m.applySnapshot(twoWorktreeSnap(), true)
 	m.cursor = rowIndexForPath(m, "/p/proj/wt-feat")
 	m.syncCursorPath()
 	m.togglePin()
@@ -66,21 +66,21 @@ func TestTogglePinAnchorsAboveSiblings(t *testing.T) {
 func TestPinPrunedWhenWorktreeDisappears(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(twoWorktreeSnap())
+	m.applySnapshot(twoWorktreeSnap(), true)
 	m.cursor = rowIndexForPath(m, "/p/proj/wt-feat")
 	m.syncCursorPath()
 	m.togglePin()
 	require.Equal(t, "/p/proj/wt-feat", m.pinnedPath)
 
-	m.applySnapshot(twoWorktreeSnap("main"))
+	m.applySnapshot(twoWorktreeSnap("main"), true)
 	require.Equal(t, "", m.pinnedPath, "a removed worktree must not stay pinned")
 }
 
 func TestPinKeyTogglesPinViaAlias(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(inspectSnap())
-	m.refreshInspect()
+	m.applySnapshot(inspectSnap(), true)
+	m.refreshInspect(true)
 	require.Equal(t, "", m.pinnedPath)
 	m.handleKey("space")
 	require.Equal(t, "/p/reddit-brain", m.pinnedPath)
@@ -120,7 +120,7 @@ func multiRepoSnap() scan.Snapshot {
 func TestSingleWorktreeRepoShowsProjectLabel(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 90, 40
-	m.applySnapshot(multiRepoSnap())
+	m.applySnapshot(multiRepoSnap(), true)
 	out := stripANSI(strings.Join(rowStrings(m), "\n"))
 	require.Contains(t, out, "simce/mvp", "the multi-worktree repo keeps its group header")
 	require.Contains(t, out, "cockpit › feat/cockpit-mvp",
@@ -136,7 +136,7 @@ func TestNavigationSkipsHeadersAndAgents(t *testing.T) {
 			{Path: "/p/app/.wt/x", Branch: "feat/x"},
 		},
 	}}}
-	m.applySnapshot(snap)
+	m.applySnapshot(snap, true)
 	require.True(t, m.rows[m.cursor].focusable(), "launch focus lands on a worktree, not a header")
 	require.Equal(t, "/p/app", m.selectedWorktree().Path)
 
@@ -159,8 +159,8 @@ func rowStrings(m *appModel) []string {
 func TestFocusCardShowsPinMarkerAndAgent(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(inspectSnap())
-	m.refreshInspect()
+	m.applySnapshot(inspectSnap(), true)
+	m.refreshInspect(true)
 	m.togglePin()
 	out := stripANSI(strings.Join(m.focusCardLines(), "\n"))
 	require.Contains(t, out, "◉")

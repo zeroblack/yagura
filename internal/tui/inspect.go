@@ -165,7 +165,11 @@ func (m *appModel) selectedRepo() *model.Repo {
 	return m.rows[m.cursor].repo
 }
 
-func (m *appModel) refreshInspect() tea.Cmd {
+// refreshInspect reloads the inspector for the current selection. A full
+// refresh re-runs the whole git battery; the fast (agent-tick) refresh only
+// re-reads status and diff, and only while the worktree can actually produce
+// new changes — an idle selection must not spawn subprocesses every tick.
+func (m *appModel) refreshInspect(full bool) tea.Cmd {
 	wt := m.selectedWorktree()
 	if wt == nil {
 		m.inspect = inspectState{}
@@ -174,13 +178,26 @@ func (m *appModel) refreshInspect() tea.Cmd {
 	if m.inspect.wt != nil && m.inspect.wt.Path == wt.Path {
 		m.inspect.repo = m.selectedRepo()
 		m.inspect.wt = wt
-		return tea.Batch(m.loadInspectData()...)
+		if full {
+			return tea.Batch(m.loadInspectData()...)
+		}
+		if !worktreeActive(wt, m.cfg.Inspect.DiffStaleAfter, time.Now()) {
+			return nil
+		}
+		return loadInspectStatus(m.gitSvc, wt.Path)
 	}
 	m.inspect = inspectState{repo: m.selectedRepo(), wt: wt}
 	m.changesOff, m.diffOff, m.graphOff = 0, 0, 0
 	m.inspectGen++
 	gen := m.inspectGen
 	return tea.Tick(inspectSettleDelay, func(time.Time) tea.Msg { return inspectSettleMsg{gen: gen} })
+}
+
+func worktreeActive(w *model.Worktree, window time.Duration, now time.Time) bool {
+	if w.LiveAgents() > 0 {
+		return true
+	}
+	return !w.LastFileMod.IsZero() && now.Sub(w.LastFileMod) < window
 }
 
 func (m *appModel) loadInspectData() []tea.Cmd {

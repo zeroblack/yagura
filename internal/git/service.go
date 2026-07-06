@@ -3,11 +3,14 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/zeroblack/yagura/internal/execx"
 )
 
 const DefaultTimeout = 10 * time.Second
@@ -43,10 +46,14 @@ func (s *Service) RunGit(ctx context.Context, dir string, args ...string) (strin
 
 	cmd := exec.CommandContext(ctx, "git", args...)
 	cmd.Dir = dir
+	execx.Harden(cmd, s.timeout)
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
+	// ErrWaitDelay means git exited cleanly and only the forced pipe close
+	// fired because a spawned helper kept the descriptor; the captured output
+	// is complete and valid.
+	if err := cmd.Run(); err != nil && !errors.Is(err, exec.ErrWaitDelay) {
 		return "", fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
 	}
 	return stdout.String(), nil

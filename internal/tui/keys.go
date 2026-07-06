@@ -58,7 +58,7 @@ func (m *appModel) handleKey(s string) tea.Cmd {
 		return m.togglePin()
 	case actGroup:
 		m.toggleGrouping()
-		return m.refreshInspect()
+		return m.refreshInspect(false)
 	case actRefresh:
 		return m.forceRefresh()
 	case actDiff:

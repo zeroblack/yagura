@@ -83,8 +83,8 @@ func TestDiffContentForUntrackedBinarySkipsGit(t *testing.T) {
 func TestFollowNewestDiffQueuesLoadForNewestFile(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(inspectSnap())
-	m.refreshInspect()
+	m.applySnapshot(inspectSnap(), true)
+	m.refreshInspect(true)
 	m.inspect.status = model.StatusResult{Files: []model.FileChange{
 		{Path: "old.go", ModTime: time.Now().Add(-time.Hour)},
 		{Path: "new.go", ModTime: time.Now()},
@@ -98,8 +98,8 @@ func TestFollowNewestDiffQueuesLoadForNewestFile(t *testing.T) {
 func TestFollowNewestDiffClearsWhenTreeIsClean(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(inspectSnap())
-	m.refreshInspect()
+	m.applySnapshot(inspectSnap(), true)
+	m.refreshInspect(true)
 	m.inspect.diffTarget = "stale.go"
 	cmd := m.followNewestDiff()
 	require.Equal(t, "", m.inspect.diffTarget)
@@ -110,8 +110,8 @@ func TestFollowNewestDiffClearsWhenTreeIsClean(t *testing.T) {
 func TestInspectDiffMsgDropsStaleResults(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(inspectSnap())
-	m.refreshInspect()
+	m.applySnapshot(inspectSnap(), true)
+	m.refreshInspect(true)
 	m.inspect.diffTarget = "current.go"
 
 	m.Update(inspectDiffMsg{wtPath: m.inspect.wt.Path, path: "other.go", content: "stale"})
@@ -122,9 +122,9 @@ func TestInspectDiffMsgDropsStaleResults(t *testing.T) {
 	require.True(t, m.inspect.diffLoaded)
 }
 
-func TestRefreshInspectFastNoopsWithoutSelection(t *testing.T) {
+func TestFastRefreshNoopsWithoutSelection(t *testing.T) {
 	m := New(config.Default())
-	require.Nil(t, m.refreshInspectFast())
+	require.Nil(t, m.refreshInspect(false))
 }
 
 func TestDiffIsStaleZeroModTimeIsNotStale(t *testing.T) {
@@ -174,8 +174,8 @@ func TestDiffIsStaleOldModTimeWithIdleAgentIsStale(t *testing.T) {
 func TestFollowNewestDiffStampsModTime(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(inspectSnap())
-	m.refreshInspect()
+	m.applySnapshot(inspectSnap(), true)
+	m.refreshInspect(true)
 	newest := time.Now()
 	m.inspect.status = model.StatusResult{Files: []model.FileChange{
 		{Path: "old.go", ModTime: newest.Add(-time.Hour)},
@@ -188,8 +188,8 @@ func TestFollowNewestDiffStampsModTime(t *testing.T) {
 func TestFollowNewestDiffClearsModTimeWhenTreeIsClean(t *testing.T) {
 	m := New(config.Default())
 	m.width, m.height = 110, 40
-	m.applySnapshot(inspectSnap())
-	m.refreshInspect()
+	m.applySnapshot(inspectSnap(), true)
+	m.refreshInspect(true)
 	m.inspect.diffTarget = "stale.go"
 	m.inspect.diffModTime = time.Now()
 	m.followNewestDiff()
