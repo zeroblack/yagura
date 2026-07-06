@@ -89,7 +89,7 @@ func New(cfg config.Config) *appModel {
 		gitSvc:    scanner.Git(),
 		home:      home,
 		grouped:   cfg.Sort.GroupByRepo,
-		forge:     forge.NewManager(cfg.Forge.Enabled, cfg.Forge.TTL),
+		forge:     forge.NewManager(cfg.Forge.Enabled, cfg.Forge.TTL, cfg.Forge.Timeout),
 		sync:      newSyncIndicator(syncCfgFrom(cfg), t),
 	}
 }

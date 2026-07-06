@@ -3,6 +3,7 @@ package forge
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -87,4 +88,100 @@ func TestManagerDisabled(t *testing.T) {
 	}
 	man := newManager("off", time.Minute, run)
 	require.Nil(t, man.PRs(context.Background(), "/repo"))
+}
+
+func TestManagerCachesFailuresWithShorterTTL(t *testing.T) {
+	attempts := 0
+	run := func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		if name == "git" {
+			return []byte("https://github.com/o/r.git\n"), nil
+		}
+		attempts++
+		return nil, errors.New("gh down")
+	}
+	man := newManager("on", time.Minute, run)
+	now := time.Unix(1000, 0)
+	man.now = func() time.Time { return now }
+
+	require.Nil(t, man.PRs(context.Background(), "/repo"))
+	first := attempts
+	require.Nil(t, man.PRs(context.Background(), "/repo"))
+	require.Equal(t, first, attempts, "a failed fetch must not retry before its error TTL")
+
+	now = now.Add(errTTL + time.Second)
+	require.Nil(t, man.PRs(context.Background(), "/repo"))
+	require.Greater(t, attempts, first, "after the error TTL the fetch retries")
+}
+
+func TestManagerSkipsWhenFetchInFlight(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	var mu sync.Mutex
+	prCalls := 0
+	run := func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		if name == "git" {
+			return []byte("https://github.com/o/r.git\n"), nil
+		}
+		mu.Lock()
+		prCalls++
+		first := prCalls == 1
+		mu.Unlock()
+		if first {
+			close(started)
+			<-release
+		}
+		return []byte(ghFixture), nil
+	}
+	man := newManager("on", time.Minute, run)
+
+	done := make(chan struct{})
+	go func() {
+		man.PRs(context.Background(), "/repo")
+		close(done)
+	}()
+	<-started
+
+	require.Nil(t, man.PRs(context.Background(), "/repo"), "a second call while one is in flight must not spawn")
+	mu.Lock()
+	require.Equal(t, 1, prCalls)
+	mu.Unlock()
+
+	close(release)
+	<-done
+	require.Len(t, man.PRs(context.Background(), "/repo"), 3)
+}
+
+func TestManagerBoundsEverySubprocessWithADeadline(t *testing.T) {
+	missing := 0
+	run := func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		if _, ok := ctx.Deadline(); !ok {
+			missing++
+		}
+		if name == "git" {
+			return []byte("https://github.com/o/r.git\n"), nil
+		}
+		return []byte(ghFixture), nil
+	}
+	man := newManager("auto", time.Minute, run)
+	man.PRs(context.Background(), "/repo")
+	require.Zero(t, missing, "every forge subprocess must run under a deadline")
+}
+
+func TestManagerCachesRemoteDetection(t *testing.T) {
+	gitCalls := 0
+	run := func(ctx context.Context, name string, args ...string) ([]byte, error) {
+		if name == "git" {
+			gitCalls++
+			return []byte("https://github.com/o/r.git\n"), nil
+		}
+		return []byte(ghFixture), nil
+	}
+	man := newManager("on", time.Minute, run)
+	now := time.Unix(1000, 0)
+	man.now = func() time.Time { return now }
+
+	man.PRs(context.Background(), "/repo")
+	now = now.Add(2 * time.Minute)
+	man.PRs(context.Background(), "/repo")
+	require.Equal(t, 1, gitCalls, "the remote URL must be resolved once, not per refresh")
 }
