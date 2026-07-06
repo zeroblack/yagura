@@ -33,6 +33,10 @@ func agentByWorktree(repos []model.Repo) map[string][]model.AgentSession {
 	return out
 }
 
+func attach(repos []model.Repo, src agents.Source) {
+	attachAgents(repos, src, time.Minute, newLeakTracker(), 0, time.Now())
+}
+
 func TestAttachAgentsPlacesByHomeWithLeak(t *testing.T) {
 	repos := repoWithWorktrees()
 	src := fakeSource{sessions: []agents.Session{{
@@ -40,7 +44,7 @@ func TestAttachAgentsPlacesByHomeWithLeak(t *testing.T) {
 		State: model.StateEditing, Liveness: model.LiveActive, ModTime: time.Now(),
 	}}}
 
-	attachAgents(repos, src, time.Minute)
+	attach(repos, src)
 
 	byWt := agentByWorktree(repos)
 	require.Len(t, byWt["/repo/.wt/feat"], 1, "agent belongs to its home worktree (cwd)")
@@ -55,7 +59,7 @@ func TestAttachAgentsNoLeakWhenEditingHome(t *testing.T) {
 		State: model.StateEditing, Liveness: model.LiveActive, ModTime: time.Now(),
 	}}}
 
-	attachAgents(repos, src, time.Minute)
+	attach(repos, src)
 
 	byWt := agentByWorktree(repos)
 	require.Len(t, byWt["/repo/.wt/feat"], 1)
@@ -69,7 +73,7 @@ func TestAttachAgentsNoLeakForExternalPath(t *testing.T) {
 		State: model.StateEditing, Liveness: model.LiveActive, ModTime: time.Now(),
 	}}}
 
-	attachAgents(repos, src, time.Minute)
+	attach(repos, src)
 
 	byWt := agentByWorktree(repos)
 	require.Len(t, byWt["/repo/.wt/feat"], 1)
@@ -86,7 +90,7 @@ func TestAttachAgentsNoLeakAcrossRepos(t *testing.T) {
 		State: model.StateEditing, Liveness: model.LiveActive, ModTime: time.Now(),
 	}}}
 
-	attachAgents(repos, src, time.Minute)
+	attach(repos, src)
 
 	byWt := agentByWorktree(repos)
 	require.Len(t, byWt["/a"], 1)
@@ -100,7 +104,7 @@ func TestAttachAgentsFallsBackToEditPathWithoutCwd(t *testing.T) {
 		State: model.StateEditing, Liveness: model.LiveActive, ModTime: time.Now(),
 	}}}
 
-	attachAgents(repos, src, time.Minute)
+	attach(repos, src)
 
 	byWt := agentByWorktree(repos)
 	require.Len(t, byWt["/repo/.wt/feat"], 1)

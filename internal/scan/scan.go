@@ -33,6 +33,7 @@ type Scanner struct {
 	mu      sync.Mutex
 	cached  []model.Repo
 	commits map[string]commitCache
+	leaks   *leakTracker
 }
 
 type commitCache struct {
@@ -46,6 +47,7 @@ func NewScanner(cfg config.Config) *Scanner {
 		git:     git.NewService(cfg.Git.MaxProcs, cfg.Git.Timeout),
 		src:     agents.NewClaudeSource(cfg.Agents.ClaudeRoot, cfg.Agents.ActiveWindow, cfg.Agents.ToolTimeout),
 		commits: map[string]commitCache{},
+		leaks:   newLeakTracker(),
 	}
 }
 
@@ -80,7 +82,7 @@ func (s *Scanner) Take(ctx context.Context) (Snapshot, error) {
 	s.cached = cloneRepos(repos)
 	s.mu.Unlock()
 
-	attachAgents(repos, s.src, s.cfg.Agents.ToolTimeout)
+	attachAgents(repos, s.src, s.cfg.Agents.ToolTimeout, s.leaks, s.cfg.Agents.LeakConfirm, time.Now())
 	activity.SortRepos(repos)
 	return Snapshot{Repos: repos}, nil
 }
@@ -98,7 +100,7 @@ func (s *Scanner) RefreshAgents(ctx context.Context) (Snapshot, error) {
 		return s.Take(ctx)
 	}
 	repos := cloneRepos(cached)
-	attachAgents(repos, s.src, s.cfg.Agents.ToolTimeout)
+	attachAgents(repos, s.src, s.cfg.Agents.ToolTimeout, s.leaks, s.cfg.Agents.LeakConfirm, time.Now())
 	activity.SortRepos(repos)
 	return Snapshot{Repos: repos}, nil
 }
@@ -171,14 +173,15 @@ func worktreeIndex(repos []model.Repo) ([]string, map[string]worktreeRef) {
 	return paths, refs
 }
 
-func attachAgents(repos []model.Repo, src agents.Source, toolTimeout time.Duration) {
+func attachAgents(repos []model.Repo, src agents.Source, toolTimeout time.Duration, leaks *leakTracker, leakConfirm time.Duration, now time.Time) {
 	sessions := src.Collect()
 	paths, refs := worktreeIndex(repos)
-	now := time.Now()
 
+	live := make(map[string]struct{}, len(sessions))
 	byWt := map[string][]model.AgentSession{}
 	for _, s := range sessions {
-		home := agents.MatchWorktree(s.Cwd, paths)
+		cwdHome := agents.MatchWorktree(s.Cwd, paths)
+		home := cwdHome
 		if home == "" {
 			home = agents.MatchWorktree(s.LastEditPath, paths)
 		}
@@ -188,10 +191,7 @@ func attachAgents(repos []model.Repo, src agents.Source, toolTimeout time.Durati
 		if home == "" {
 			continue
 		}
-		leak := ""
-		if edit := agents.MatchWorktree(s.LastEditPath, paths); edit != "" && edit != home && refs[edit].repoPath == refs[home].repoPath {
-			leak = refs[edit].branch
-		}
+		live[s.Path] = struct{}{}
 		byWt[home] = append(byWt[home], model.AgentSession{
 			Tool:       "claude",
 			Model:      s.Model,
@@ -200,14 +200,36 @@ func attachAgents(repos []model.Repo, src agents.Source, toolTimeout time.Durati
 			Liveness:   s.Liveness,
 			SessionID:  s.Path,
 			UpdatedAt:  s.ModTime,
-			LeakTarget: leak,
+			LeakTarget: leakFor(s, cwdHome, refs, paths, leaks, leakConfirm, now),
 		})
 	}
+	leaks.prune(live)
 	for i := range repos {
 		for j := range repos[i].Worktrees {
 			repos[i].Worktrees[j].Agents = byWt[repos[i].Worktrees[j].Path]
 		}
 	}
+}
+
+// leakFor decides whether an agent's latest edit lands outside its home
+// worktree. The home must be the one resolved from the transcript cwd: the
+// other fallbacks infer home from the edit path itself, so they can never
+// disagree with it, and accusing an agent of leaking against a guessed home is
+// noise. A single cross-worktree edit is not enough either — an agent that
+// touches a sibling path once right after a context switch must not flash the
+// chip — so the observation has to persist across the debounce window before it
+// is promoted to a leak.
+func leakFor(s agents.Session, cwdHome string, refs map[string]worktreeRef, paths []string, leaks *leakTracker, window time.Duration, now time.Time) string {
+	if cwdHome == "" {
+		leaks.clear(s.Path)
+		return ""
+	}
+	edit := agents.MatchWorktree(s.LastEditPath, paths)
+	if edit == "" || edit == cwdHome || refs[edit].repoPath != refs[cwdHome].repoPath {
+		leaks.clear(s.Path)
+		return ""
+	}
+	return leaks.confirm(s.Path, refs[edit].branch, now, window)
 }
 
 func repoName(path string, roots []string) string {

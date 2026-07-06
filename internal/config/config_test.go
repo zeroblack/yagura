@@ -113,7 +113,7 @@ func TestLoadInspectAndForge(t *testing.T) {
 func TestLoadParsesDurations(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.yaml")
-	body := "refresh:\n  tick: 3s\nagents:\n  active_window: 5m\n  tool_timeout: 45s\nsort:\n  group_by_repo: false\n"
+	body := "refresh:\n  tick: 3s\nagents:\n  active_window: 5m\n  tool_timeout: 45s\n  leak_confirm: 20s\nsort:\n  group_by_repo: false\n"
 	require.NoError(t, os.WriteFile(path, []byte(body), 0o644))
 
 	c, err := Load(path)
@@ -121,6 +121,7 @@ func TestLoadParsesDurations(t *testing.T) {
 	require.Equal(t, 3*time.Second, c.Refresh.Tick)
 	require.Equal(t, 5*time.Minute, c.Agents.ActiveWindow)
 	require.Equal(t, 45*time.Second, c.Agents.ToolTimeout)
+	require.Equal(t, 20*time.Second, c.Agents.LeakConfirm)
 	require.False(t, c.Sort.GroupByRepo)
 }
 

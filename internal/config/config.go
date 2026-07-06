@@ -13,6 +13,7 @@ type AgentsConfig struct {
 	ClaudeRoot   string
 	ActiveWindow time.Duration
 	ToolTimeout  time.Duration
+	LeakConfirm  time.Duration
 }
 
 type GitConfig struct {
@@ -118,6 +119,7 @@ func Default() Config {
 			ClaudeRoot:   defaultClaudeRoot(),
 			ActiveWindow: 10 * time.Minute,
 			ToolTimeout:  30 * time.Second,
+			LeakConfirm:  15 * time.Second,
 		},
 		Git:       GitConfig{MaxProcs: 0, Timeout: 10 * time.Second},
 		Refresh:   RefreshConfig{Tick: 5 * time.Second, FullTick: 30 * time.Second},
@@ -177,6 +179,7 @@ type fileConfig struct {
 		ClaudeRoot   *string `yaml:"claude_root"`
 		ActiveWindow *string `yaml:"active_window"`
 		ToolTimeout  *string `yaml:"tool_timeout"`
+		LeakConfirm  *string `yaml:"leak_confirm"`
 	} `yaml:"agents"`
 	Git struct {
 		MaxProcs *int    `yaml:"max_procs"`
@@ -297,6 +300,9 @@ func (f fileConfig) applyTo(c *Config) {
 	}
 	if d, ok := parseDur(f.Agents.ToolTimeout); ok {
 		c.Agents.ToolTimeout = d
+	}
+	if d, ok := parseDur(f.Agents.LeakConfirm); ok {
+		c.Agents.LeakConfirm = d
 	}
 	if f.Git.MaxProcs != nil && *f.Git.MaxProcs >= 0 {
 		c.Git.MaxProcs = *f.Git.MaxProcs
