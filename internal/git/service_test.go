@@ -59,3 +59,26 @@ func TestServiceHonorsCanceledContext(t *testing.T) {
 	_, err := s.RunGit(ctx, dir, "rev-parse", "HEAD")
 	require.ErrorIs(t, err, context.Canceled)
 }
+
+func TestServiceReturnsWhenGrandchildHoldsStdout(t *testing.T) {
+	dir := initRepo(t)
+	s := NewService(1, time.Second)
+	start := time.Now()
+	out, err := s.RunGit(context.Background(), dir, "-c", "alias.linger=!sh -c 'sleep 10 & echo ok'", "linger")
+	require.NoError(t, err)
+	require.Contains(t, out, "ok")
+	require.Less(t, time.Since(start), 5*time.Second)
+}
+
+func TestServiceTimeoutKillsProcessGroup(t *testing.T) {
+	dir := initRepo(t)
+	marker := "20.31459"
+	s := NewService(1, 100*time.Millisecond)
+	start := time.Now()
+	_, err := s.RunGit(context.Background(), dir, "-c", "alias.hang=!sh -c 'sleep "+marker+"'", "hang")
+	require.Error(t, err)
+	require.Less(t, time.Since(start), 5*time.Second, "a timed-out command must not block on surviving children")
+	require.Eventually(t, func() bool {
+		return exec.Command("pgrep", "-f", "sleep "+marker).Run() != nil
+	}, 2*time.Second, 50*time.Millisecond, "grandchild survived the timeout")
+}
