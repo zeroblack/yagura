@@ -31,7 +31,7 @@ already have.** Every other tool in this space *drives* parallel agent work; yag
 the pane you leave open beside them to *see* it. Read-only by design — it never runs a
 git command that writes — so it's safe to keep on screen all day.
 
-## See every agent, at a glance
+## See every agent, at a glance oooh yessss
 
 - **Live status per agent** — `RUNNING`, `EDITING`, `BROWSING`, `THINKING` — inferred
   from the last tool each one used, shown as a filled chip.
